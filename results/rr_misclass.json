@@ -1,0 +1,57 @@
+{
+ "n": 1000,
+ "policy_by_quadrant": {
+  "quad_HSLD": "fixed_750",
+  "quad_HSHD": "adapt_1.5",
+  "quad_LSLD": "fixed_750",
+  "quad_LSHD": "none"
+ },
+ "one_size_policy": "fixed_750",
+ "one_size_survival": 73.9069715253713,
+ "rows": [
+  {
+   "p": 0,
+   "mean_survival": 77.34157551188791
+  },
+  {
+   "p": 0.1,
+   "mean_survival": 76.37441603441988
+  },
+  {
+   "p": 0.2,
+   "mean_survival": 75.40725655695182
+  },
+  {
+   "p": 0.3,
+   "mean_survival": 74.44009707948376
+  },
+  {
+   "p": 0.4,
+   "mean_survival": 73.47293760201573
+  },
+  {
+   "p": 0.5,
+   "mean_survival": 72.50577812454767
+  },
+  {
+   "p": 0.6,
+   "mean_survival": 71.53861864707962
+  },
+  {
+   "p": 0.75,
+   "mean_survival": 70.08787943087755
+  }
+ ],
+ "p_where_personalisation_stops_helping": 0.4,
+ "headline": {
+  "oracle_assignment": 77.34,
+  "one_size": 73.91,
+  "p_star": 0.4,
+  "policy": {
+   "quad_HSLD": "fixed_750",
+   "quad_HSHD": "adapt_1.5",
+   "quad_LSLD": "fixed_750",
+   "quad_LSHD": "none"
+  }
+ }
+}

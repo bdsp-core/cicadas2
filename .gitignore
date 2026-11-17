@@ -1,0 +1,21 @@
+# Local Claude Code settings
+.claude/
+
+# Intermediate PNG renders for paper-agents-figures review
+Figures_png/
+
+# Duplicate files left over from manual edits
+results/*copy*.mat
+
+# macOS metadata
+.DS_Store
+**/.DS_Store
+
+# Python caches
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.coverage

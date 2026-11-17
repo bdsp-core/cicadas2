@@ -1,0 +1,104 @@
+{
+ "n": 1000,
+ "groups": {
+  "rise_decay": {
+   "corr_untreated": 0.9928261251333641,
+   "corr_treated": 0.9788204420764433,
+   "median_abs_rel_err_untreated": 0.10479421899735752,
+   "median_abs_rel_err_treated": 0.166160873464281
+  },
+  "sde": {
+   "corr_untreated": 0.984461104529746,
+   "corr_treated": 0.9438970559140915,
+   "median_abs_rel_err_untreated": 0.15417390618231297,
+   "median_abs_rel_err_treated": 0.31064294288548056
+  }
+ },
+ "rows": [
+  {
+   "sde_fraction": 0,
+   "corr": 0.9860554108522234,
+   "median_abs_rel_err": 0.1303420631848956
+  },
+  {
+   "sde_fraction": 0.1,
+   "corr": 0.9868204381671657,
+   "median_abs_rel_err": 0.13677866375813708
+  },
+  {
+   "sde_fraction": 0.2,
+   "corr": 0.9851869273280268,
+   "median_abs_rel_err": 0.1413772719849225
+  },
+  {
+   "sde_fraction": 0.3,
+   "corr": 0.9853509928387684,
+   "median_abs_rel_err": 0.1480063809376262
+  },
+  {
+   "sde_fraction": 0.4,
+   "corr": 0.9841172555757205,
+   "median_abs_rel_err": 0.15826390740589347
+  },
+  {
+   "sde_fraction": 0.5,
+   "corr": 0.9841492434930544,
+   "median_abs_rel_err": 0.16394802100554595
+  },
+  {
+   "sde_fraction": 0.6,
+   "corr": 0.9839200245400498,
+   "median_abs_rel_err": 0.16681601144014602
+  },
+  {
+   "sde_fraction": 0.7,
+   "corr": 0.9827700575761046,
+   "median_abs_rel_err": 0.1765766169479258
+  },
+  {
+   "sde_fraction": 0.8,
+   "corr": 0.9799893428085198,
+   "median_abs_rel_err": 0.18195986483316956
+  },
+  {
+   "sde_fraction": 0.9,
+   "corr": 0.9739932882502671,
+   "median_abs_rel_err": 0.19787788113155336
+  },
+  {
+   "sde_fraction": 1.0,
+   "corr": 0.9609179194045667,
+   "median_abs_rel_err": 0.20989015426929275
+  }
+ ],
+ "runtime_s": 65.27907037734985,
+ "headline": {
+  "corr_by_fraction": {
+   "0": 0.986,
+   "0.1": 0.987,
+   "0.2": 0.985,
+   "0.3": 0.985,
+   "0.4": 0.984,
+   "0.5": 0.984,
+   "0.6": 0.984,
+   "0.7": 0.983,
+   "0.8": 0.98,
+   "0.9": 0.974,
+   "1.0": 0.961
+  },
+  "groups": {
+   "rise_decay": {
+    "corr_untreated": 0.993,
+    "corr_treated": 0.979,
+    "median_abs_rel_err_untreated": 0.105,
+    "median_abs_rel_err_treated": 0.166
+   },
+   "sde": {
+    "corr_untreated": 0.984,
+    "corr_treated": 0.944,
+    "median_abs_rel_err_untreated": 0.154,
+    "median_abs_rel_err_treated": 0.311
+   }
+  }
+ }
+}

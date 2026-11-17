@@ -1,0 +1,375 @@
+{
+ "n": 9108,
+ "site": {
+  "MGH": 6303,
+  "BI": 2805
+ },
+ "age": [
+  51.0,
+  64.0,
+  74.0
+ ],
+ "male_pct": 52.7,
+ "sofa": [
+  0.0,
+  0.0,
+  2.0
+ ],
+ "primary_dx_top": {
+  "TME_AMS": 20.0,
+  "Other medical": 17.7,
+  "Seizure_status": 11.9,
+  "Other cardiac": 7.6,
+  "TBI+SDH": 6.5,
+  "Other neuro": 5.7
+ },
+ "eeg_h_5d": [
+  22.6,
+  31.3,
+  54.8
+ ],
+ "seizures": {
+  "min1s": {
+   "min_seizure_seconds_per_minute": 1,
+   "patients_with_any_pct": 70.0,
+   "onsets_per_recorded_day_all": [
+    0.0,
+    25.1,
+    71.4
+   ],
+   "onsets_per_recorded_day_among_sz_patients": [
+    21.0,
+    52.0,
+    87.4
+   ],
+   "share_5min_bins_with_onset_among_sz_patients_pct": [
+    6.68,
+    16.08,
+    26.91
+   ],
+   "share_5min_bins_with_2plus_onsets_given_any_pct": 12.4,
+   "patient_days_12h_recorded": 17341,
+   "patient_days_zero_onsets_pct": 30.5,
+   "patient_days_1to4_pct": 7.6,
+   "patient_days_5to24_pct": 15.1,
+   "patient_days_25plus_pct": 46.8
+  },
+  "min10s": {
+   "min_seizure_seconds_per_minute": 10,
+   "patients_with_any_pct": 70.0,
+   "onsets_per_recorded_day_all": [
+    0.0,
+    28.5,
+    83.1
+   ],
+   "onsets_per_recorded_day_among_sz_patients": [
+    23.7,
+    59.9,
+    102.6
+   ],
+   "share_5min_bins_with_onset_among_sz_patients_pct": [
+    7.23,
+    17.8,
+    30.11
+   ],
+   "share_5min_bins_with_2plus_onsets_given_any_pct": 17.6,
+   "patient_days_12h_recorded": 17341,
+   "patient_days_zero_onsets_pct": 30.5,
+   "patient_days_1to4_pct": 7.4,
+   "patient_days_5to24_pct": 13.8,
+   "patient_days_25plus_pct": 48.3
+  },
+  "min30s": {
+   "min_seizure_seconds_per_minute": 30,
+   "patients_with_any_pct": 66.6,
+   "onsets_per_recorded_day_all": [
+    0.0,
+    14.0,
+    65.9
+   ],
+   "onsets_per_recorded_day_among_sz_patients": [
+    14.0,
+    44.6,
+    91.6
+   ],
+   "share_5min_bins_with_onset_among_sz_patients_pct": [
+    4.37,
+    13.16,
+    26.46
+   ],
+   "share_5min_bins_with_2plus_onsets_given_any_pct": 19.3,
+   "patient_days_12h_recorded": 17341,
+   "patient_days_zero_onsets_pct": 35.9,
+   "patient_days_1to4_pct": 8.9,
+   "patient_days_5to24_pct": 15.5,
+   "patient_days_25plus_pct": 39.6
+  }
+ },
+ "ea": {
+  "peak24_iiic": [
+   1.9,
+   12.8,
+   34.8
+  ],
+  "overall_iiic": [
+   1.1,
+   6.8,
+   19.4
+  ],
+  "peak24_ge10_pct": 54.6
+ },
+ "drugs_in_window_pct": {
+  "asm_in_eeg5d": 65.1,
+  "levetiracetam": 55.0,
+  "lacosamide": 9.4,
+  "valproate": 9.5,
+  "phenytoin_fosphenytoin": 6.5,
+  "rescue_benzo_bolus": 34.0,
+  "propofol": 35.6,
+  "sedative_hypnotic_infusion": 39.1
+ },
+ "groups_MGH": {
+  "Low EA / no propofol": 1656,
+  "High EA / no propofol": 1589,
+  "High EA / propofol": 1589,
+  "Low EA / propofol": 1469
+ },
+ "groups_all": {
+  "High EA / no propofol": 3263,
+  "Low EA / no propofol": 2599,
+  "High EA / propofol": 1706,
+  "Low EA / propofol": 1540
+ },
+ "levetiracetam": {
+  "patients": 5012,
+  "doses": 38969,
+  "dose_mg": [
+   500.0,
+   1000.0,
+   1000.0
+  ],
+  "interval_h": [
+   11.3,
+   11.9,
+   12.5
+  ],
+  "interval_share_pct": {
+   "q8h (6-10 h)": 6.6,
+   "q12h (10-14 h)": 85.8,
+   "other": 7.6
+  },
+  "doses_per_patient_day": [
+   1.0,
+   1.8,
+   2.0
+  ]
+ },
+ "quadrants_MGH": {
+  "definition": "primary: peak 24-h EA >= 10%, any propofol",
+  "n": "6303",
+  "low_ea_no_prop": "1656",
+  "low_ea_prop": "1469",
+  "high_ea_no_prop": "1589",
+  "high_ea_prop": "1589",
+  "smallest_cell_pct": "23.3",
+  "odds_ratio": "1.13",
+  "or_lo": "1.02",
+  "or_hi": "1.24",
+  "phi": "0.03"
+ },
+ "quadrants_MGH_sensitivity": [
+  {
+   "definition": "peak 24-h EA >= 1%",
+   "n": "6303",
+   "low_ea_no_prop": "799",
+   "low_ea_prop": "536",
+   "high_ea_no_prop": "2446",
+   "high_ea_prop": "2522",
+   "smallest_cell_pct": "8.5",
+   "odds_ratio": "1.54",
+   "or_lo": "1.36",
+   "or_hi": "1.74",
+   "phi": "0.087"
+  },
+  {
+   "definition": "peak 24-h EA >= 10%",
+   "n": "6303",
+   "low_ea_no_prop": "1656",
+   "low_ea_prop": "1469",
+   "high_ea_no_prop": "1589",
+   "high_ea_prop": "1589",
+   "smallest_cell_pct": "23.3",
+   "odds_ratio": "1.13",
+   "or_lo": "1.02",
+   "or_hi": "1.24",
+   "phi": "0.03"
+  },
+  {
+   "definition": "peak 24-h EA >= 25%",
+   "n": "6303",
+   "low_ea_no_prop": "2294",
+   "low_ea_prop": "2092",
+   "high_ea_no_prop": "951",
+   "high_ea_prop": "966",
+   "smallest_cell_pct": "15.1",
+   "odds_ratio": "1.11",
+   "or_lo": "1.0",
+   "or_hi": "1.24",
+   "phi": "0.025"
+  },
+  {
+   "definition": "overall 5-day EA burden >= 10%",
+   "n": "6303",
+   "low_ea_no_prop": "1937",
+   "low_ea_prop": "1902",
+   "high_ea_no_prop": "1308",
+   "high_ea_prop": "1156",
+   "smallest_cell_pct": "18.3",
+   "odds_ratio": "0.9",
+   "or_lo": "0.81",
+   "or_hi": "1.0",
+   "phi": "-0.026"
+  },
+  {
+   "definition": "seizure-only peak 24-h >= 10%",
+   "n": "6303",
+   "low_ea_no_prop": "2082",
+   "low_ea_prop": "2136",
+   "high_ea_no_prop": "1163",
+   "high_ea_prop": "922",
+   "smallest_cell_pct": "14.6",
+   "odds_ratio": "0.77",
+   "or_lo": "0.7",
+   "or_hi": "0.86",
+   "phi": "-0.06"
+  },
+  {
+   "definition": "seizure-only peak 24-h >= 1%",
+   "n": "6303",
+   "low_ea_no_prop": "1493",
+   "low_ea_prop": "1352",
+   "high_ea_no_prop": "1752",
+   "high_ea_prop": "1706",
+   "smallest_cell_pct": "21.5",
+   "odds_ratio": "1.08",
+   "or_lo": "0.97",
+   "or_hi": "1.19",
+   "phi": "0.018"
+  },
+  {
+   "definition": "propofol above median cumulative mg (exposed) vs rest",
+   "n": "6303",
+   "low_ea_no_prop": "2441",
+   "low_ea_prop": "684",
+   "high_ea_no_prop": "2390",
+   "high_ea_prop": "788",
+   "smallest_cell_pct": "10.9",
+   "odds_ratio": "1.18",
+   "or_lo": "1.05",
+   "or_hi": "1.32",
+   "phi": "0.034"
+  },
+  {
+   "definition": "MGH only",
+   "n": "6303",
+   "low_ea_no_prop": "1656",
+   "low_ea_prop": "1469",
+   "high_ea_no_prop": "1589",
+   "high_ea_prop": "1589",
+   "smallest_cell_pct": "23.3",
+   "odds_ratio": "1.13",
+   "or_lo": "1.02",
+   "or_hi": "1.24",
+   "phi": "0.03"
+  },
+  {
+   "definition": "EEG recorded >= 24 h in window",
+   "n": "4019",
+   "low_ea_no_prop": "695",
+   "low_ea_prop": "947",
+   "high_ea_no_prop": "1029",
+   "high_ea_prop": "1348",
+   "smallest_cell_pct": "17.3",
+   "odds_ratio": "0.96",
+   "or_lo": "0.85",
+   "or_hi": "1.09",
+   "phi": "-0.01"
+  }
+ ],
+ "quadrants_MGH_separability": [
+  {
+   "target": "Low EA / no propofol vs rest",
+   "auc_cv": "0.664",
+   "n": "1656"
+  },
+  {
+   "target": "Low EA / propofol vs rest",
+   "auc_cv": "0.71",
+   "n": "1469"
+  },
+  {
+   "target": "High EA / no propofol vs rest",
+   "auc_cv": "0.698",
+   "n": "1589"
+  },
+  {
+   "target": "High EA / propofol vs rest",
+   "auc_cv": "0.67",
+   "n": "1589"
+  },
+  {
+   "target": "high EA vs low EA",
+   "auc_cv": "0.623",
+   "n": "3178"
+  },
+  {
+   "target": "propofol vs none",
+   "auc_cv": "0.755",
+   "n": "3058"
+  },
+  {
+   "target": "Low EA / propofol vs Low EA / no propofol",
+   "auc_cv": "0.755",
+   "n": "3125"
+  },
+  {
+   "target": "High EA / propofol vs High EA / no propofol",
+   "auc_cv": "0.748",
+   "n": "3178"
+  },
+  {
+   "target": "High EA / no propofol vs Low EA / no propofol",
+   "auc_cv": "0.621",
+   "n": "3245"
+  },
+  {
+   "target": "High EA / propofol vs Low EA / propofol",
+   "auc_cv": "0.61",
+   "n": "3058"
+  },
+  {
+   "target": "High EA / no propofol vs Low EA / propofol",
+   "auc_cv": "0.799",
+   "n": "3058"
+  },
+  {
+   "target": "High EA / propofol vs Low EA / no propofol",
+   "auc_cv": "0.752",
+   "n": "3245"
+  }
+ ],
+ "quadrants_all": {
+  "definition": "primary: peak 24-h EA >= 10%, any propofol",
+  "n": "9108",
+  "low_ea_no_prop": "2599",
+  "low_ea_prop": "1540",
+  "high_ea_no_prop": "3263",
+  "high_ea_prop": "1706",
+  "smallest_cell_pct": "16.9",
+  "odds_ratio": "0.88",
+  "or_lo": "0.81",
+  "or_hi": "0.96",
+  "phi": "-0.03"
+ },
+ "source": "cicadas-real-data branch real-cohort, pipeline/20 (--site MGH) and 26, 2026-10-27; aggregate numbers only"
+}

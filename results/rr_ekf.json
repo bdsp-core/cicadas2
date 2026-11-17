@@ -1,0 +1,59 @@
+{
+ "n": 1000,
+ "strategies": {
+  "none": {
+   "EKF": {
+    "mae_sz_per_day": 6.521850089541795,
+    "median_rel_err": 0.5851365972274717,
+    "rmse_sz_per_day": 12.370933282481406,
+    "coverage_95": 0.13458508997429305,
+    "coverage_95_when_rate_ge_05": 0.1376887863548355
+   },
+   "MA4h": {
+    "mae_sz_per_day": 5.269928270245991,
+    "median_rel_err": 1.0,
+    "rmse_sz_per_day": 7.446426459073794
+   },
+   "MA24h": {
+    "mae_sz_per_day": 2.705894042573174,
+    "median_rel_err": 0.3077027349027242,
+    "rmse_sz_per_day": 4.301284179081898
+   }
+  },
+  "adaptive": {
+   "EKF": {
+    "mae_sz_per_day": 2.5041453790951325,
+    "median_rel_err": 0.608601373282946,
+    "rmse_sz_per_day": 4.244792837204003,
+    "coverage_95": 0.16585295629820052,
+    "coverage_95_when_rate_ge_05": 0.18273059269165998
+   },
+   "MA4h": {
+    "mae_sz_per_day": 3.241815403677168,
+    "median_rel_err": 1.0,
+    "rmse_sz_per_day": 4.79336115719759
+   },
+   "MA24h": {
+    "mae_sz_per_day": 1.677420866539124,
+    "median_rel_err": 0.5025343807110748,
+    "rmse_sz_per_day": 2.6679030005276076
+   }
+  }
+ },
+ "headline": {
+  "none": {
+   "EKF": 6.52,
+   "MA4h": 5.27,
+   "MA24h": 2.71
+  },
+  "adaptive": {
+   "EKF": 2.5,
+   "MA4h": 3.24,
+   "MA24h": 1.68
+  },
+  "coverage": {
+   "none": 0.135,
+   "adaptive": 0.166
+  }
+ }
+}
