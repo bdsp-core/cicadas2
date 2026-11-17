@@ -48,7 +48,7 @@ def table7():
             r"($n = 1{,}000$; survival computed exactly from the daily hazard over 7 days). Bold: highest mean in the row. "
             r"Fixed: 500~mg every 8~h. PRN (\emph{pro re nata}): a dose if at least one seizure was counted in the preceding 8~h. "
             r"Adaptive: tiered controller driven by the extended Kalman filter, $\omega = 2$. Harm-balanced: the controller of "
-            r"Section~\ref{sec:harm}. Same numbers as Figure~\ref{fig:quadrant}.}",
+            r"Section~\ref{sec:harm}. Same numbers as Figure~\ref{fig:quadrant}. Sz: seizure harm; Drug: drug harm.}",
             r"\label{tab:quadrant}", r"\begin{tabular}{@{}llllll@{}}", r"\toprule",
             r"Phenotype & None & Fixed & PRN & Adaptive & Harm-balanced \\", r"\midrule"]
     for q in QUADS:
@@ -87,7 +87,7 @@ def table_tuned():
             r"is given below each entry. Positive values favor the tiered controller. PRN (\emph{pro re nata}): a dose when "
             r"at least the given number of seizures was counted in the preceding 8 or 24~h, or when the extended Kalman "
             r"filter (EKF) rate exceeds the threshold. Tiered, 24-h average: the same dose tiers driven by a 24-hour "
-            r"moving average of counts instead of the EKF.}",
+            r"moving average of counts instead of the EKF. Sz: seizure harm; Drug: drug harm. A tuned fixed dose beats the tiered controller in High Sz / Low Drug and Low Sz / Low Drug; when the drug is harmful, rules that rarely dose (PRN, no treatment) match or beat it.}",
             r"\label{tab:tuned}", r"\begin{tabular}{@{}l" + "l" * len(fams) + "@{}}", r"\toprule",
             " & ".join([_two("Phenotype", r"(tiered $\omega$)")] + [_two(a_, b_) for _, (a_, b_) in fams]) + r" \\", r"\midrule"]
     for q in QUADS:
@@ -109,7 +109,7 @@ def table_smd():
             r"\caption{Covariate balance between treated and untreated patients. SMD: standardized mean difference "
             r"(difference in means divided by the pooled standard deviation); $|\text{SMD}| > 0.1$ is the usual flag for imbalance. "
             r"Observational: confounded assignment (Section~\ref{sec:overlap}); randomized: coin-flip assignment of the same patients. "
-            r"SOFA: Sequential Organ Failure Assessment score.}",
+            r"SOFA: Sequential Organ Failure Assessment score. $n = 1{,}000$ (874 treated, 126 untreated). The observational cohort is strongly imbalanced on first-day seizure activity; randomizing the same patients removes the imbalance.}",
             r"\label{tab:smd}", r"\begin{tabular}{lrr}", r"\toprule", r"First-day feature & Observational SMD & Randomized SMD \\", r"\midrule"]
     for f, a, b in zip(o["features"], o["smd_observational"], o["smd_rct"]):
         rows.append(f"{f} & ${a:.2f}$ & ${b:.2f}$ \\\\")
@@ -132,7 +132,7 @@ def table_robustness():
             r"\caption{G-formula error under misspecification and data errors. True ATE: oracle effect of adaptive dosing versus no "
             r"treatment (percentage points); bias: g-formula with fitted mortality model minus truth, with 95\% bootstrap interval "
             r"(mortality model refitted on each of 200 resamples); relative bias: bias as a percentage of the true ATE. "
-            r"EKF: extended Kalman filter; SDE: stochastic differential equation; PK: pharmacokinetics; $C_{50}$: half-maximal concentration.}",
+            r"EKF: extended Kalman filter; SDE: stochastic differential equation; PK: pharmacokinetics; $C_{50}$: half-maximal concentration. $n = 1{,}000$ in every scenario. The bias interval excludes zero only for false detections, missing dose records, saturating harm and strong drug tolerance; unmeasured confounding is analysed separately (Figure~\ref{fig:hiddenconf}).}",
             r"\label{tab:robust}", r"\begin{tabular}{lrrr}", r"\toprule", r"Scenario & True ATE & Bias (95\% CI) & Relative bias \\", r"\midrule"]
     def row(lab, v):
         return (f"{lab} & {_n(v['oracle_ate'])} & {_n(v['bias'])} ({_n(v['ci']['bias'][0])}, {_n(v['ci']['bias'][1])}) & "
@@ -177,7 +177,7 @@ def table_personalized():
            r"$\{0.125, 0.25, 0.5, 1, 1.5, 2, 3, 4, 6, 8, \infty\}$ ($\infty$: no treatment) to maximize that patient's 7-day survival, "
            r"using either the true natural history or the one estimated from observed counts; survival is then evaluated on the "
            r"true trajectory. Entries: mean survival (\%) with 95\% confidence interval, $n = 1{,}000$. Recovered: gain of the "
-           r"estimated over the uniform threshold as a share of the gain with the true natural history.")
+           r"estimated over the uniform threshold as a share of the gain with the true natural history. Sz: seizure harm; Drug: drug harm. Thresholds chosen from estimated trajectories recover 96--99\% of the gain except when both harms are high (63\%).")
     return _tab(cap, "tab:personalized", "lllllll",
                 r"Phenotype & \multicolumn{2}{c}{Median $\omega^*$} & Uniform $\omega = 2$ & Personal (true) & Personal (est.) & Recovered \\"
                 "\n" + r" & True & Est. & & & & \\", body, r"\footnotesize")
@@ -191,7 +191,7 @@ def table_dynamic():
         body.append(f"{LAB[q]} & {_ci(t['uniform'])} & {_ci(t['fixed_best'])} [{(t['fixed_best']['choice'].split('_')[1] if '_' in t['fixed_best']['choice'] else '$\\infty$')}] & {_ci(t['dynamic'])} \\\\")
     cap = (r"Three levels of personalization of the tiered controller, held-out half ($n = 500$): a uniform threshold "
            r"$\omega = 2$; the best fixed threshold for the phenotype, chosen on the other half (in brackets); and the dynamic "
-           r"$\omega(t)$ rule of Section~\ref{sec:dynomega}. Entries: 7-day survival (\%) with 95\% confidence interval.")
+           r"$\omega(t)$ rule of Section~\ref{sec:dynomega}. Entries: 7-day survival (\%) with 95\% confidence interval. Sz: seizure harm; Drug: drug harm. A threshold fixed per phenotype captures most of the gain over the uniform threshold, and the dynamic rule does no better (paired differences in Section~\ref{sec:personalized}).")
     return _tab(cap, "tab:dynamic_omega", "llll", r"Phenotype & Uniform & Fixed $\omega^*$ & Dynamic $\omega(t)$ \\", body)
 
 
@@ -285,7 +285,7 @@ def table_harm():
             r"includes the drug; its prior and persistence were chosen by tracking error on the tuning half "
             f"(prior peak {f['P_pop']:g} seizures/day, persistence {f['tau_x']:g} days). Oracle: the true drug-free rate and "
             r"the patient's own dose-response parameters. Entries: survival difference in percentage points with 95\% "
-            r"paired-bootstrap interval; the tuned setting is in brackets. Positive values favor the harm-balanced controller.}",
+            r"paired-bootstrap interval; the tuned setting is in brackets. Positive values favor the harm-balanced controller. Sz: seizure harm; Drug: drug harm. SOFA: Sequential Organ Failure Assessment. PRN (\emph{pro re nata}): a dose when seizures were counted in the preceding hours. The controller ties the best tuned fixed dose when the drug is not harmful (where the maximum dose is optimal) and beats every tuned comparator when it is.}",
             r"\label{tab:harm}", r"\begin{tabular}{@{}lllll@{}}", r"\toprule",
             " & ".join([_two("Phenotype", ""), _two("vs tuned", "fixed dose"), _two("vs tuned", "tiered adaptive"),
                         _two("vs no", "treatment"), _two("Oracle vs", "tuned fixed")]) + r" \\", r"\midrule"]
@@ -312,7 +312,7 @@ def table_closed_loop():
             r"$n = 1{,}000$; even-numbered patients were observed on fixed 500~mg dosing and odd-numbered patients "
             r"untreated before estimation. Bold: best strategy within each column. The ranking of all six strategies "
             r"is the same under true and estimated trajectories in every phenotype. PRN: dose when a seizure was "
-            r"counted in the preceding 8~h.}",
+            r"counted in the preceding 8~h. Sz: seizure harm; Drug: drug harm. Fixed 750~mg: the highest fixed dose. Harm-balanced: the controller of Section~\ref{sec:harm}. Entries are point estimates; their 95\% confidence intervals are shown in Figure~\ref{fig:closed_loop}.}",
             r"\label{tab:closedloop}", r"\begin{tabular}{@{}l" + "rr" * 4 + "@{}}", r"\toprule",
             " & " + " & ".join(r"\multicolumn{2}{c}{" + LAB[q].split(" / ")[0] + " /}" for q in QUADS) + r" \\",
             " & " + " & ".join(r"\multicolumn{2}{c}{" + LAB[q].split(" / ")[1] + "}" for q in QUADS) + r" \\",

@@ -39,7 +39,7 @@ def write_table(path):
              r"\begin{table}[ht]", r"\centering", r"\small",
              r"\caption{Mortality-model parameters used in each experiment. $\theta_0$: baseline log-odds of death per day; "
              r"$\theta_1$: time trend on $(d/T_{\max})^2$; $\theta_2$, $\theta_3$: seizure-harm main effect and its interaction "
-             r"with SOFA/10; $\theta_4$, $\theta_5$: drug-harm main effect and its interaction with Age/65 (Eq.~15). "
+             r"with SOFA/10; $\theta_4$, $\theta_5$: drug-harm main effect and its interaction with Age/65 (Eq.~\eqref{eq:mortality}). "
              r"SOFA: Sequential Organ Failure Assessment score.}",
              r"\label{tab:theta}", r"\begin{tabular}{lrrrrrrl}", r"\toprule",
              r"Setting & $\theta_0$ & $\theta_1$ & $\theta_2$ & $\theta_3$ & $\theta_4$ & $\theta_5$ & Used in \\", r"\midrule"]
