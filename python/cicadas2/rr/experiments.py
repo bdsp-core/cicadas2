@@ -28,6 +28,25 @@ T, dt, Nt = TIME["T"], TIME["dt"], TIME["Nt"]
 # One bootstrap for every g-formula analysis: the same 500 patient resamples (seed 21) in every experiment, so
 # the baseline interval is identical wherever it is reported and scenario intervals are paired with it.
 GF_B, GF_SEED = 500, 21
+# Replicate outcome draws (2026-11-18): every experiment that redraws the simulated deaths uses the same DEATH_DRAWS
+# sets, death uniforms from default_rng((SEED, DEATH_SEED0 + j)), with patients, trajectories and treatment
+# assignment held fixed. The spread over these draws is the error from fitting the mortality model alone.
+# (Previously 50, 40 and 20 draws with different seeds were used in three places, which gave SDs of 4.1, 3.7 and
+# 2.9 pp and mean biases of -0.8, -2.1 and -1.5 pp for the same quantity.)
+DEATH_DRAWS, DEATH_SEED0 = 200, 900
+
+
+def _death_draws(P, th, n):
+    """gform_ate and its bias over the DEATH_DRAWS replicate sets of observed deaths (same patients and assignment)."""
+    ate, bias = [], []
+    for j in range(DEATH_DRAWS):
+        Pd = dict(P, u_death=np.random.default_rng((SEED, DEATH_SEED0 + j)).uniform(size=(n, 8)))
+        r_ = gformula.evaluate(Pd, th)
+        ate.append(float(r_["gform_ate"])); bias.append(float(r_["gform_ate"] - r_["oracle_ate"]))
+    ate, bias = np.array(ate), np.array(bias)
+    return {"mean": float(ate.mean()), "sd": float(ate.std(ddof=1)), "p2_5": float(np.percentile(ate, 2.5)),
+            "p97_5": float(np.percentile(ate, 97.5)), "mean_bias": float(bias.mean()),
+            "mc_se": float(ate.std(ddof=1) / np.sqrt(DEATH_DRAWS)), "draws": DEATH_DRAWS}
 
 QLAB = {"quad_HSLD": "HSLD", "quad_HSHD": "HSHD", "quad_LSLD": "LSLD", "quad_LSHD": "LSHD",
         "default": "Default", "gformula": "Gform"}
@@ -173,6 +192,13 @@ def exp_strategies(results_dir):
         for m, nm in [("none", "None"), ("fixed", "Fixed"), ("prn8_k1", "PRN"), ("adapt_2", "Adapt")]:
             mac += [(f"Strat{q}{nm}", R["surv"][m]["est"], "{:.1f}"), (f"Strat{q}{nm}Lo", R["surv"][m]["lo"], "{:.1f}"),
                     (f"Strat{q}{nm}Hi", R["surv"][m]["hi"], "{:.1f}")]
+    # Supplementary Table S4 quantities (phenotype-free) quoted in the Methods: Lcum in seizures (expected count),
+    # Xcum in mg*day (x is the amount in mg, integrated over days), doses of fixed 500 mg q8h over the 7 days
+    t8 = out["regimes"]["default"]["table8"]
+    mac += [("MetFixedXcum", t8["fixed"]["Xcum"], "{:,.0f}"), ("MetFixedLcum", t8["fixed"]["Lcum"], "{:.1f}"),
+            ("MetNoneLcum", t8["none"]["Lcum"], "{:.1f}"), ("MetFixedDose", t8["fixed"]["dose"], "{:,.0f}"),
+            ("MetFixedNDoses", float(nd[:, L["fixed"]].mean()), "{:.0f}"),
+            ("MetXnormRatio", MORT["X_norm"] / t8["fixed"]["Xcum"], "{:.2f}")]
     # PRN legacy plateau check (Fig 8): thresholds 2,3,5 are the same rule in counts
     Sd = arrays["S_default"]
     out["checks"]["legacy_prn_235_identical"] = bool(np.allclose(Sd[:, L["prnlegacy_2"]], Sd[:, L["prnlegacy_5"]]) and
@@ -227,17 +253,22 @@ def exp_gformula(results_dir, B=500):
         rcts = np.array([100 * (r["S_t"][a].mean() - r["S_n"][~a].mean())
                          for a in (g.uniform(size=N) > 0.5 for _ in range(2000))])
         s["rct_sd_over_randomisations"] = float(rcts.std(ddof=1))
+        # 95% interval of the one simulated RCT actually reported (Fig 3): patient bootstrap with the same GF_B
+        # resamples as gformula.bootstrap, each patient keeping the arm it was randomized to
+        rct = P["u_rct"] > 0.5
+        gb = np.random.default_rng(GF_SEED)
+        rb = []
+        for _ in range(GF_B):
+            ii = gb.integers(0, N, size=N)
+            m = rct[ii]
+            rb.append(100 * (r["S_t"][ii][m].mean() - r["S_n"][ii][~m].mean()))
+        s["rct_ci"] = [float(np.percentile(rb, 2.5)), float(np.percentile(rb, 97.5))]
         s["rct_95_range"] = [float(np.percentile(rcts, 2.5)), float(np.percentile(rcts, 97.5))]
         s["oracle_se_patient_sampling"] = float(100 * (r["S_t"] - r["S_n"]).std(ddof=1) / np.sqrt(N))
         s["theta_hat_se"] = [float(v) for v in np.sqrt(np.diag(r["theta_cov"]))]
         s["theta_true"] = [float(v) for v in th]
-        # sampling spread of the fitted g-formula over 50 independent sets of observed deaths (same patients)
-        reps = []
-        for sd in range(50):
-            Pd = dict(P, u_death=np.random.default_rng((SEED, 500 + sd)).uniform(size=(N, 8)))
-            reps.append(float(gformula.evaluate(Pd, th)["gform_ate"]))
-        s["fitted_over_death_draws"] = {"mean": float(np.mean(reps)), "sd": float(np.std(reps, ddof=1)),
-                                        "p2_5": float(np.percentile(reps, 2.5)), "p97_5": float(np.percentile(reps, 97.5))}
+        # spread of the fitted g-formula over DEATH_DRAWS independent sets of observed deaths (same patients/assignment)
+        s["fitted_over_death_draws"] = _death_draws(P, th, N)
         rl = gformula.evaluate(P, th, n_days=8)
         s["legacy_8day_knowntheta"] = {"oracle": float(rl["oracle_ate"]), "gform_known": float(rl["gform_known_ate"]),
                                        "naive": float(rl["naive_ate"]), "rct": float(rl["rct_ate"])}
@@ -257,9 +288,12 @@ def exp_gformula(results_dir, B=500):
             ("GFBias", o["bias"], "{:.1f}"), ("GFBiasLo", o["ci"]["bias"][0], "{:.1f}"), ("GFBiasHi", o["ci"]["bias"][1], "{:.1f}"),
             ("GFKnownATE", o["gform_known_ate"], "{:.1f}"), ("GFNaiveATE", o["naive_ate"], "{:.1f}"),
             ("GFNaiveLo", o["ci"]["naive"][0], "{:.1f}"), ("GFNaiveHi", o["ci"]["naive"][1], "{:.1f}"),
-            ("GFRCTsd", o["rct_sd_over_randomisations"], "{:.1f}"), ("GFFracTreated", 100 * o["frac_treated"], "{:.0f}"),
+            ("GFRCTsd", o["rct_sd_over_randomisations"], "{:.1f}"), ("GFRCTATE", o["rct_ate"], "{:.1f}"),
+            ("GFRCTLo", o["rct_ci"][0], "{:.1f}"), ("GFRCTHi", o["rct_ci"][1], "{:.1f}"), ("GFFracTreated", 100 * o["frac_treated"], "{:.0f}"),
             ("GFPopFitATE", out["pop"]["gform_ate"], "{:.1f}"), ("GFPopBias", out["pop"]["bias"], "{:.1f}"),
-            ("GFDrawMean", o["fitted_over_death_draws"]["mean"], "{:.1f}"), ("GFDrawSD", o["fitted_over_death_draws"]["sd"], "{:.1f}")]
+            ("GFDrawMean", o["fitted_over_death_draws"]["mean"], "{:.1f}"), ("GFDrawSD", o["fitted_over_death_draws"]["sd"], "{:.1f}"),
+            ("GFDrawBias", o["fitted_over_death_draws"]["mean_bias"], "{:.1f}"), ("GFDrawSE", o["fitted_over_death_draws"]["mc_se"], "{:.1f}"),
+            ("GFDrawN", DEATH_DRAWS, "{:d}")]
     out["headline"] = {"oracle": _r(o["oracle_ate"]), "gform_fitted": _r(o["gform_ate"]), "bias": _r(o["bias"]),
                        "bias_ci": [_r(v) for v in o["ci"]["bias"]], "naive": _r(o["naive_ate"]),
                        "known_theta": _r(o["gform_known_ate"]), "pop_pkpd_bias": _r(out["pop"]["bias"])}
@@ -583,38 +617,163 @@ def exp_ekf(results_dir):
 
 
 # ----------------------------------------------------------------------------------------
-# E9  Quadrant misclassification (R1 M1b)
+# E9  Phenotype misassignment (R1 M1b, E2). Rewritten 2026-11-18: the submitted version compared simple
+#     strategies only, ignored the harm-balanced controller and had no intervals.
 # ----------------------------------------------------------------------------------------
-def exp_misclass(results_dir, ps=(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.75)):
+# drug-harm multipliers for the "one theta for everyone" controller family: (theta4, theta5) of High Sz / High
+# Drug scaled by m, seizure terms kept; the drug-to-seizure harm ratio then spans those of all four phenotypes
+MIS_DRUG_SCALE = [0.04, 0.08, 0.16, 0.24, 0.33, 0.5, 0.75, 1.0, 1.5, 2.5, 4.0, 6.0]
+MIS_PS = [round(0.05 * i, 2) for i in range(21)]
+
+
+def _mis_wrong(q, scheme):
+    """Phenotypes a patient of true phenotype q can be wrongly assigned to, with equal probability."""
+    others = [o for o in QUADS if o != q]
+    if scheme == "uniform":
+        return others
+    sz, dr = (lambda o: o[5]), (lambda o: o[7])  # "quad_HSLD": o[5] = seizure-harm level, o[7] = drug-harm level
+    keep = {"seizure": lambda o: sz(o) != sz(q) and dr(o) == dr(q), "drug": lambda o: sz(o) == sz(q) and dr(o) != dr(q)}[scheme]
+    return [o for o in others if keep(o)]
+
+
+def exp_misclass(results_dir, ps=MIS_PS, B=2000):
+    """How much survival is lost when phenotype-dependent policies are given the wrong phenotype?
+
+    Population: every held-out patient (odd-numbered, n = 500) is scored under each of the four true phenotypes
+    (an equal mix), on the common random-number tape of exp_strategies. Policies:
+      matched harm-balanced: the controller of Sec 4.5 (estimated rate, filter of exp_harm) given the theta of the
+        ASSIGNED phenotype; matched simple: the best strategy for the assigned phenotype among no treatment, the
+        fixed-dose family (250-750 mg), the tiered controller (omega grid) and the count-based PRN family, chosen
+        on the even half; best single policy: one policy for everyone, from the same simple strategies and from
+        harm-balanced controllers with one fixed theta (the four phenotype vectors and MIS_DRUG_SCALE), chosen on
+        the even half to maximise survival averaged over the four phenotypes.
+    Misassignment: with probability p the assigned phenotype is replaced by a wrong one, uniformly among the other
+    three (primary), or only along one axis (secondary); survival is always scored under the true phenotype.
+    Survival is the exact expectation over the assignment error, so it is linear in p:
+      V(p) = (1 - p) * matched + p * wrong.  Crossover p* = (matched - single) / (matched - wrong).
+    Intervals: patient bootstrap of the held-out half (B resamples, paired across policies).
+    """
+    t0 = time.time()
     c = get_cohort()
-    labels, Ld, Xd, _, _ = run_strategy_grid(c)
-    L = {l: i for i, l in enumerate(labels)}
+    U = cohort_mod.uniform_tape(N, Nt, SEED, stream=1)
     tune = np.arange(N) % 2 == 0
     test = ~tune
-    cand = ["none", "fixed_250", "fixed_375", "fixed", "fixed_750"] + [f"adapt_{w}" for w in OMEGAS]
-    S = {q: surv_matrix(c, Ld, Xd, q) for q in QUADS}
-    policy = {q: max(cand, key=lambda l: S[q][tune, L[l]].mean()) for q in QUADS}
-    one = max(cand, key=lambda l: np.mean([S[q][tune, L[l]].mean() for q in QUADS]))
-    rows = []
-    for p in ps:
-        tot = []
-        for q in QUADS:
-            others = [o for o in QUADS if o != q]
-            s_right = S[q][test, L[policy[q]]].mean()
-            s_wrong = np.mean([S[q][test, L[policy[o]]].mean() for o in others])
-            tot.append((1 - p) * s_right + p * s_wrong)
-        rows.append({"p": p, "mean_survival": float(100 * np.mean(tot))})
-    one_size = float(100 * np.mean([S[q][test, L[one]].mean() for q in QUADS]))
-    p_star = next((r["p"] for r in rows if r["mean_survival"] <= one_size), None)
-    out = {"n": N, "policy_by_quadrant": policy, "one_size_policy": one, "one_size_survival": one_size, "rows": rows,
-           "p_where_personalisation_stops_helping": p_star,
-           "headline": {"oracle_assignment": _r(rows[0]["mean_survival"]), "one_size": _r(one_size), "p_star": p_star,
-                        "policy": policy}}
-    mac = [("MisOracle", rows[0]["mean_survival"], "{:.1f}"), ("MisOneSize", one_size, "{:.1f}")]
-    if p_star is not None:
-        mac.append(("MisPstar", 100 * p_star, "{:.0f}"))
-    _save(results_dir, "misclass", {}, out, mac, ["R1 M1b", "E2"],
-          "Each patient evaluated in all four quadrants (equal mix); wrong assignment goes uniformly to one of the other three.")
+    hj = Path(results_dir) / "rr_harm.json"
+    filt = json.loads(hj.read_text())["filter"]["chosen"] if hj.exists() else dict(P_pop=10, tau_x=5, q=1e-4)
+    labels, Ld, Xd, dose, _ = run_strategy_grid(c)
+    L = {l: i for i, l in enumerate(labels)}
+    simple = (["none", "fixed_250", "fixed_375", "fixed", "fixed_750"] + [f"adapt_{w:g}" for w in OMEGAS]
+              + [f"prn8_k{k}" for k in (1, 2, 3, 4, 5)])
+    # harm-balanced controllers: one per theta (phenotype vectors and the one-parameter family)
+    TH = {f"harm_{QLAB[q]}": theta(q) for q in QUADS}
+    for m in MIS_DRUG_SCALE:
+        t_ = theta("quad_HSHD").copy(); t_[4:] *= m
+        TH[f"harmscale_{m:g}"] = t_
+    H = {}
+    for k, th in TH.items():
+        sp = {"strategy": "harm", "harm": dict(theta=th, age=c["age"], sofa=c["sofa"]), "ekf": dict(filt, drug_aware=True)}
+        H[k] = engine.simulate(sp, c["lambda_base"], c["C50"], c["gamma_hill"], U, DRUG, CTRL, T, dt)
+    pol = simple + list(TH)
+    # S[q][:, j]: survival of every patient under true phenotype q with policy pol[j]
+    S = {}
+    for q in QUADS:
+        cols = [survival.exact(Ld[:, L[l]], Xd[:, L[l]], c["age"], c["sofa"], theta(q)) for l in simple]
+        cols += [survival.exact(H[k]["Lday"], H[k]["Xday"], c["age"], c["sofa"], theta(q)) for k in TH]
+        S[q] = np.stack(cols, 1)
+    P = {l: j for j, l in enumerate(pol)}
+    doses = {l: float(dose[:, L[l]].mean()) for l in simple}
+    doses.update({k: float(H[k]["total_dose"].mean()) for k in TH})
+    avg_tune = {l: np.mean([S[q][tune, P[l]].mean() for q in QUADS]) for l in pol}
+    simple_by_q = {q: max(simple, key=lambda l: S[q][tune, P[l]].mean()) for q in QUADS}
+    harm_by_q = {q: f"harm_{QLAB[q]}" for q in QUADS}
+    single = max(pol, key=avg_tune.get)
+    single_simple = max(simple, key=avg_tune.get)
+    single_harm = max(TH, key=avg_tune.get)
+
+    def per_patient(by_q, scheme):
+        """Per-patient survival averaged over the 4 true phenotypes: correctly assigned and wrongly assigned."""
+        right = np.mean([S[q][:, P[by_q[q]]] for q in QUADS], 0)
+        wrong = np.mean([np.mean([S[q][:, P[by_q[o]]] for o in _mis_wrong(q, scheme)], 0) for q in QUADS], 0)
+        return right[test], wrong[test]
+    one = lambda l: np.mean([S[q][:, P[l]] for q in QUADS], 0)[test]
+    v_single, v_single_simple, v_single_harm = one(single), one(single_simple), one(single_harm)
+    n_t = int(test.sum())
+    idx = np.random.default_rng((SEED, 909)).integers(0, n_t, size=(B, n_t))
+
+    def pstar(M, W, Sg):
+        m, w, s_ = M.mean(), W.mean(), Sg.mean()
+        if m <= s_:
+            return 0.0
+        return float((m - s_) / (m - w)) if w < s_ else np.inf
+    res = {}
+    for name, by_q in (("harm", harm_by_q), ("simple", simple_by_q)):
+        for scheme in ("uniform", "seizure", "drug"):
+            M, W = per_patient(by_q, scheme)
+            ps_b = np.array([pstar(M[i], W[i], v_single[i]) for i in idx])
+            curve = []
+            for p in ps:
+                V = (1 - p) * M + p * W
+                curve.append({"p": p, **stats.mean_ci(V), "vs_single": stats.paired(V, v_single, seed=95)})
+            res[f"{name}_{scheme}"] = {
+                "matched": stats.mean_ci(M), "all_wrong": stats.mean_ci(W),
+                "matched_vs_single": stats.paired(M, v_single, seed=93), "wrong_vs_single": stats.paired(W, v_single, seed=94),
+                "loss_per_10pct": float(10 * (M.mean() - W.mean())),
+                "p_star": pstar(M, W, v_single),
+                "p_star_ci": [float(np.percentile(np.minimum(ps_b, 9.99), 2.5)), float(np.percentile(np.minimum(ps_b, 9.99), 97.5))],
+                "p_star_share_never": float(np.mean(np.isinf(ps_b))), "curve": curve}
+    out = {"n": n_t, "n_cohort": N, "filter": filt, "policies": pol, "drug_scale_family": MIS_DRUG_SCALE,
+           "matched_simple_by_phenotype": {QLAB[q]: simple_by_q[q] for q in QUADS},
+           "single_policy": single, "single_simple": single_simple, "single_harm": single_harm,
+           "single": stats.mean_ci(v_single), "single_simple_ci": stats.mean_ci(v_single_simple),
+           "single_harm_ci": stats.mean_ci(v_single_harm),
+           "mean_dose": doses, "avg_survival_tune": {k: float(100 * v) for k, v in avg_tune.items()},
+           "per_phenotype_test": {QLAB[q]: {l: float(100 * S[q][test, P[l]].mean()) for l in pol} for q in QUADS},
+           "results": res, "runtime_s": time.time() - t0}
+    h = res["harm_uniform"]; sm = res["simple_uniform"]
+    out["headline"] = {"matched_harm": _r(h["matched"]["est"]), "matched_simple": _r(sm["matched"]["est"]),
+                       "single": [single, _r(out["single"]["est"])], "harm_minus_single": [_r(h["matched_vs_single"][k]) for k in ("est", "lo", "hi")],
+                       "simple_minus_single": [_r(sm["matched_vs_single"][k]) for k in ("est", "lo", "hi")],
+                       "p_star_harm": h["p_star"], "p_star_harm_ci": h["p_star_ci"], "p_star_simple": sm["p_star"]}
+    mac = []
+    pct = lambda v: 100 * v if np.isfinite(v) else 999.0
+    for name, tag in (("harm", "Harm"), ("simple", "Simple")):
+        r_ = res[f"{name}_uniform"]
+        mac += [(f"Mis{tag}Matched", r_["matched"]["est"], "{:.1f}"), (f"Mis{tag}MatchedLo", r_["matched"]["lo"], "{:.1f}"),
+                (f"Mis{tag}MatchedHi", r_["matched"]["hi"], "{:.1f}"),
+                (f"Mis{tag}Wrong", r_["all_wrong"]["est"], "{:.1f}"),
+                (f"Mis{tag}VsSingle", r_["matched_vs_single"]["est"], "{:.1f}"), (f"Mis{tag}VsSingleLo", r_["matched_vs_single"]["lo"], "{:.1f}"),
+                (f"Mis{tag}VsSingleHi", r_["matched_vs_single"]["hi"], "{:.1f}"),
+                (f"Mis{tag}WrongVsSingle", r_["wrong_vs_single"]["est"], "{:.1f}"),
+                (f"Mis{tag}WrongVsSingleLo", r_["wrong_vs_single"]["lo"], "{:.1f}"), (f"Mis{tag}WrongVsSingleHi", r_["wrong_vs_single"]["hi"], "{:.1f}"),
+                (f"Mis{tag}LossPerTen", r_["loss_per_10pct"], "{:.1f}"),
+                (f"Mis{tag}Pstar", pct(r_["p_star"]), "{:.0f}"), (f"Mis{tag}PstarLo", pct(r_["p_star_ci"][0]), "{:.0f}"),
+                (f"Mis{tag}PstarHi", min(100.0, pct(r_["p_star_ci"][1])), "{:.0f}")]
+        for scheme, stag in (("seizure", "SzAxis"), ("drug", "DrugAxis")):
+            r2 = res[f"{name}_{scheme}"]
+            mac += [(f"Mis{tag}{stag}Wrong", r2["all_wrong"]["est"], "{:.1f}"), (f"Mis{tag}{stag}Pstar", pct(r2["p_star"]), "{:.0f}")]
+    mac += [("MisSingle", out["single"]["est"], "{:.1f}"), ("MisSingleLo", out["single"]["lo"], "{:.1f}"), ("MisSingleHi", out["single"]["hi"], "{:.1f}"),
+            ("MisSingleSimple", out["single_simple_ci"]["est"], "{:.1f}"), ("MisSingleHarm", out["single_harm_ci"]["est"], "{:.1f}"),
+            ("MisNTest", n_t, "{:d}")]
+    # plain-language description of the chosen single policies, for the text
+    def describe(l):
+        if l.startswith("harmscale_"):
+            return r"harm-balanced controller with the High~Sz~/~High~Drug drug-harm coefficients scaled by " + l.split("_")[1]
+        if l.startswith("harm_"):
+            return "harm-balanced controller with the " + REGISTRY[[q for q in QUADS if QLAB[q] == l.split("_")[1]][0]]["label"] + r" coefficients"
+        if l == "none":
+            return "no treatment"
+        if l.startswith("fixed"):
+            return ("fixed " + (l.split("_")[1] if "_" in l else "500") + r"~mg every 8~h")
+        if l.startswith("adapt_"):
+            return r"tiered controller with $\omega = " + l.split("_")[1] + "$"
+        return r"PRN dosing ($\geq$" + l.split("_k")[1] + " seizures in 8~h)"
+    mac += [("MisSingleDesc", describe(single), None), ("MisSingleSimpleDesc", describe(single_simple), None),
+            ("MisSingleHarmDesc", describe(single_harm), None)]
+    arrays = {f"S_{q}": S[q] for q in QUADS}
+    arrays["policies"] = np.array(pol)
+    _save(results_dir, "misclass", arrays, out, mac, ["R1 M1b", "E2"],
+          "Held-out half scored under all four true phenotypes; wrong phenotype uniform among the other three "
+          "(also one-axis errors); exact expectation over assignment errors; patient bootstrap.")
     return out
 
 
@@ -719,14 +878,10 @@ def exp_refutation(results_dir):
     b = gformula.bootstrap(P, null_th, B=GF_B, seed=GF_SEED)
     out["null_outcome"] = _summ(r, b)
     out["null_outcome"]["ci_covers_0"] = bool(b["lo"][1] <= 0 <= b["hi"][1])
-    # repeat over 40 independent sets of observed deaths: does the pipeline manufacture an effect on average?
+    # repeat over the DEATH_DRAWS sets of observed deaths: does the pipeline manufacture an effect on average?
     for lab, tt in (("null", null_th), ("base", th)):
-        v = []
-        for sd in range(40):
-            Pd = dict(P, u_death=np.random.default_rng((SEED, 700 + sd)).uniform(size=(N, 8)))
-            rr_ = gformula.evaluate(Pd, tt)
-            v.append(float(rr_["gform_ate"] - rr_["oracle_ate"]))
-        out[f"{lab}_bias_over_draws"] = {"mean": float(np.mean(v)), "sd": float(np.std(v, ddof=1)), "se": float(np.std(v, ddof=1) / np.sqrt(len(v)))}
+        d_ = _death_draws(P, tt, N)
+        out[f"{lab}_bias_over_draws"] = {"mean": d_["mean_bias"], "sd": d_["sd"], "se": d_["mc_se"], "draws": d_["draws"]}
     g = np.random.default_rng(91)
     subs = []
     for _ in range(20):
@@ -740,6 +895,7 @@ def exp_refutation(results_dir):
     out["headline"]["null_mean_bias_over_draws"] = _r(out["null_bias_over_draws"]["mean"])
     out["headline"]["base_mean_bias_over_draws"] = _r(out["base_bias_over_draws"]["mean"])
     mac = [("RefNullDrawMean", out["null_bias_over_draws"]["mean"], "{:.1f}"), ("RefNullDrawSD", out["null_bias_over_draws"]["sd"], "{:.1f}"),
+           ("RefNullDrawSE", out["null_bias_over_draws"]["se"], "{:.2f}"),
            ("RefBaseDrawMean", out["base_bias_over_draws"]["mean"], "{:.1f}"), ("RefBaseDrawSE", out["base_bias_over_draws"]["se"], "{:.1f}"),
            ("RefNullATE", out["null_outcome"]["gform_ate"], "{:.1f}"), ("RefNullLo", out["null_outcome"]["ci"]["gform"][0], "{:.1f}"),
            ("RefNullHi", out["null_outcome"]["ci"]["gform"][1], "{:.1f}"), ("RefSubsetSD", out["subset_bias_sd"], "{:.1f}")]
@@ -800,28 +956,39 @@ def exp_window(results_dir, n=300):
     return out
 
 
-def exp_gformula_scaling(results_dir, sizes=(1000, 2000, 4000), draws=20):
-    """Is the fitted-theta g-formula consistent? Mean and spread over outcome draws as n grows (G11)."""
+def exp_gformula_scaling(results_dir, sizes=(1000, 2000, 4000)):
+    """Is the fitted-theta g-formula consistent? Mean and spread over outcome draws as n grows (G11).
+
+    For each size the cohort is the first n patients (prefix-stable), the treatment assignment and trajectories are
+    held fixed, and only the simulated deaths are redrawn (DEATH_DRAWS sets, the same seeds as exp_gformula), so the
+    SD is the error of the fitted mortality model and should fall about as 1/sqrt(n); the bias splits into the part
+    left with the true coefficients (known_theta - oracle: error of the estimated trajectories) and the rest.
+    """
     t0 = time.time()
     th = theta("gformula")
     rows = []
     for n in sizes:
-        P = gformula.prepare(get_cohort(n, SEED), DRUG, CTRL, T, dt, SEED)
+        P = get_prep("oracle", n=n)
         r0 = gformula.evaluate(P, th)
-        reps = []
-        for sd in range(draws):
-            Pd = dict(P, u_death=np.random.default_rng((SEED, 900 + sd)).uniform(size=(n, 8)))
-            reps.append(float(gformula.evaluate(Pd, th)["gform_ate"]))
+        d_ = _death_draws(P, th, n)
         rows.append({"n": n, "n_untreated": int((~r0["A"]).sum()), "oracle": float(r0["oracle_ate"]), "known_theta": float(r0["gform_known_ate"]),
-                     "fitted_mean": float(np.mean(reps)), "fitted_sd": float(np.std(reps, ddof=1)),
-                     "mean_bias": float(np.mean(reps) - r0["oracle_ate"])})
+                     "known_bias": float(r0["gform_known_ate"] - r0["oracle_ate"]),
+                     "fitted_mean": d_["mean"], "fitted_sd": d_["sd"], "mean_bias": d_["mean_bias"], "mc_se": d_["mc_se"],
+                     "draws": d_["draws"]})
+    for r_ in rows:
+        r_["sd_ratio_vs_first"] = r_["fitted_sd"] / rows[0]["fitted_sd"]
+        r_["sqrt_n_prediction"] = float(np.sqrt(rows[0]["n"] / r_["n"]))
     out = {"n": max(sizes), "rows": rows, "runtime_s": time.time() - t0,
-           "headline": {str(r_["n"]): {"mean_bias": _r(r_["mean_bias"]), "sd": _r(r_["fitted_sd"])} for r_ in rows}}
+           "headline": {str(r_["n"]): {"mean_bias": _r(r_["mean_bias"]), "sd": _r(r_["fitted_sd"]), "known_bias": _r(r_["known_bias"])} for r_ in rows}}
     words = {1000: "OneK", 2000: "TwoK", 4000: "FourK"}
     mac = []
     for r_ in rows:
-        mac += [(f"GFScale{words[r_['n']]}Bias", r_["mean_bias"], "{:.1f}"), (f"GFScale{words[r_['n']]}SD", r_["fitted_sd"], "{:.1f}")]
-    _save(results_dir, "gformula_scaling", {}, out, mac, ["G11", "R1 M7"], f"{draws} outcome draws per size; same cohort prefix.")
+        w = words[r_["n"]]
+        mac += [(f"GFScale{w}Bias", r_["mean_bias"], "{:.1f}"), (f"GFScale{w}SD", r_["fitted_sd"], "{:.1f}"),
+                (f"GFScale{w}SE", r_["mc_se"], "{:.1f}"), (f"GFScale{w}KnownBias", r_["known_bias"], "{:.1f}"),
+                (f"GFScale{w}NUntr", r_["n_untreated"], "{:d}")]
+    _save(results_dir, "gformula_scaling", {}, out, mac, ["G11", "R1 M7"],
+          f"{DEATH_DRAWS} outcome draws per size (seeds {DEATH_SEED0}+); same cohort prefix; assignment fixed.")
     return out
 
 
@@ -1067,6 +1234,26 @@ def exp_figdata(results_dir):
                                                    ("13 or more (very high)", 13, 99))},
            "demographics": {"age": [float(np.mean(c["age"])), float(np.median(c["age"])), float(np.std(c["age"], ddof=1))],
                             "sofa": [float(np.mean(c["sofa"])), float(np.median(c["sofa"])), float(np.std(c["sofa"], ddof=1))]}}
+    # Figures 2 and 4 plot peaks up to the 99th percentile; the captions give what lies beyond
+    p99 = float(np.percentile(peak, 99))
+    out["peak_range"] = {"p50": float(np.median(peak)), "p99": p99, "max": float(peak.max()), "n_above_p99": int((peak > p99).sum())}
+    # untreated simulated counts summarised exactly as the real cohort (Section 6): onsets per day among patients with
+    # any seizure, share of 5-min bins with an onset, and patient-days by number of onsets (7 full days per patient)
+    U1 = cohort_mod.uniform_tape(N, Nt, SEED, stream=1)
+    un = engine.simulate({"strategy": "none"}, c["lambda_base"], c["C50"], c["gamma_hill"], U1, DRUG, CTRL, T, dt, store=("counts",))
+    cnt = un["counts"][:, :int(round(TIME["Tmax"] / dt))]           # bins of [0, 7 d)
+    per_day = cnt.reshape(N, 7, -1).sum(2)
+    anysz = cnt.sum(1) > 0
+    rate = cnt.sum(1)[anysz] / 7.0
+    bins_with = 100 * (cnt[anysz] > 0).mean(1)
+    pdays = per_day.ravel()
+    out["sim_counts"] = {"any_pct": float(100 * anysz.mean()), "rate_med": float(np.median(rate)),
+                         "rate_iqr": [float(v) for v in np.percentile(rate, [25, 75])],
+                         "bins_with_med": float(np.median(bins_with)), "bins_with_iqr": [float(v) for v in np.percentile(bins_with, [25, 75])],
+                         "multi_pct": float(100 * (cnt > 1).sum() / max((cnt > 0).sum(), 1)),
+                         "pdays_zero": float(100 * np.mean(pdays == 0)), "pdays_few": float(100 * np.mean((pdays >= 1) & (pdays <= 4))),
+                         "pdays_mid": float(100 * np.mean((pdays >= 5) & (pdays <= 24))), "pdays_many": float(100 * np.mean(pdays >= 25)),
+                         "pdays_max": float(pdays.max())}
     arrays = dict(peak=peak, sofa=c["sofa"], age=c["age"], A=r["A"], rct=rct, S_t=r["S_t"], S_n=r["S_n"], G_t=r["G_t"], G_n=r["G_n"])
     ite = 100 * (r["G_t"] - r["G_n"])
     mac = [("FigITELo", out["ite_range"][0], "{:.0f}"), ("FigITEMed", out["ite_range"][1], "{:.0f}"), ("FigITEHi", out["ite_range"][2], "{:.0f}"),
@@ -1078,7 +1265,16 @@ def exp_figdata(results_dir):
            ("DemAgeMean", out["demographics"]["age"][0], "{:.1f}"), ("DemAgeMedian", out["demographics"]["age"][1], "{:.1f}"),
            ("DemAgeSD", out["demographics"]["age"][2], "{:.1f}"), ("DemSofaMean", out["demographics"]["sofa"][0], "{:.1f}"),
            ("DemSofaMedian", out["demographics"]["sofa"][1], "{:.0f}"), ("DemSofaSD", out["demographics"]["sofa"][2], "{:.1f}"),
-           ("DemSofaLowPct", out["sofa_categories"]["0--6 (low)"], "{:.1f}")]
+           ("DemSofaLowPct", out["sofa_categories"]["0--6 (low)"], "{:.1f}"),
+           ("FigPeakMedian", out["peak_range"]["p50"], "{:.1f}"), ("FigPeakPNinetyNine", out["peak_range"]["p99"], "{:.0f}"),
+           ("FigPeakMax", out["peak_range"]["max"], "{:.0f}"), ("FigPeakNAbove", out["peak_range"]["n_above_p99"], "{:d}")]
+    sc_ = out["sim_counts"]
+    mac += [("SimSzAnyPct", sc_["any_pct"], "{:.0f}"), ("SimSzDayMed", sc_["rate_med"], "{:.1f}"),
+            ("SimSzDayLo", sc_["rate_iqr"][0], "{:.1f}"), ("SimSzDayHi", sc_["rate_iqr"][1], "{:.1f}"),
+            ("SimBinsWithMed", sc_["bins_with_med"], "{:.1f}"), ("SimBinsWithLo", sc_["bins_with_iqr"][0], "{:.1f}"),
+            ("SimBinsWithHi", sc_["bins_with_iqr"][1], "{:.1f}"), ("SimBinsMultiPct", sc_["multi_pct"], "{:.1f}"),
+            ("SimPdaysZeroPct", sc_["pdays_zero"], "{:.0f}"), ("SimPdaysFewPct", sc_["pdays_few"], "{:.0f}"),
+            ("SimPdaysMidPct", sc_["pdays_mid"], "{:.0f}"), ("SimPdaysManyPct", sc_["pdays_many"], "{:.0f}")]
     for k, nm in [("oracle", "Oracle"), ("rct", "RCT"), ("naive", "Naive"), ("gformula", "GF")]:
         mac += [(f"Fig{nm}SurvT", out["arms"][k]["treated"]["est"], "{:.1f}"), (f"Fig{nm}SurvU", out["arms"][k]["untreated"]["est"], "{:.1f}")]
     # threshold sweep under the default mortality model (Fig 8 of the submission), from exp_strategies

@@ -45,14 +45,16 @@
   "ci_covers_0": true
  },
  "null_bias_over_draws": {
-  "mean": -0.05949202888390499,
-  "sd": 2.091425883522314,
-  "se": 0.3306834674680264
+  "mean": 0.43046450625219684,
+  "sd": 2.2701724975604605,
+  "se": 0.16052543674882025,
+  "draws": 200
  },
  "base_bias_over_draws": {
-  "mean": -2.147641407849443,
-  "sd": 3.7429648643908813,
-  "se": 0.5918147086729225
+  "mean": -1.3262452910545932,
+  "sd": 3.4544261981311477,
+  "se": 0.24426481898069988,
+  "draws": 200
  },
  "subset_bias_sd": 4.09015256206564,
  "subset_bias_mean": -4.60039950865136,
@@ -64,7 +66,7 @@
   ],
   "null_covers_0": true,
   "subset_bias_sd": 4.09,
-  "null_mean_bias_over_draws": -0.06,
-  "base_mean_bias_over_draws": -2.15
+  "null_mean_bias_over_draws": 0.43,
+  "base_mean_bias_over_draws": -1.33
  }
 }

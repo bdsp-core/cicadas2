@@ -3,9 +3,9 @@
  "strategies": {
   "none": {
    "EKF": {
-    "mae_sz_per_day": 6.521850089541795,
+    "mae_sz_per_day": 6.521850089541783,
     "median_rel_err": 0.5851365972274717,
-    "rmse_sz_per_day": 12.370933282481406,
+    "rmse_sz_per_day": 12.370933282481381,
     "coverage_95": 0.13458508997429305,
     "coverage_95_when_rate_ge_05": 0.1376887863548355
    },
@@ -22,9 +22,9 @@
   },
   "adaptive": {
    "EKF": {
-    "mae_sz_per_day": 2.5041453790951325,
-    "median_rel_err": 0.608601373282946,
-    "rmse_sz_per_day": 4.244792837204003,
+    "mae_sz_per_day": 2.5041453790951307,
+    "median_rel_err": 0.6086013732829462,
+    "rmse_sz_per_day": 4.244792837203996,
     "coverage_95": 0.16585295629820052,
     "coverage_95_when_rate_ge_05": 0.18273059269165998
    },
@@ -35,8 +35,8 @@
    },
    "MA24h": {
     "mae_sz_per_day": 1.677420866539124,
-    "median_rel_err": 0.5025343807110748,
-    "rmse_sz_per_day": 2.6679030005276076
+    "median_rel_err": 0.5025343807110746,
+    "rmse_sz_per_day": 2.667903000527608
    }
   }
  },

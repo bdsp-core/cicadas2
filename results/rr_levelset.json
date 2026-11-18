@@ -18,24 +18,24 @@
   },
   "quad_HSHD": {
    "share_same_omega_all_variants": 0.564,
-   "mean_loss_pp_using_ref_omega": 0.09981492123957633,
+   "mean_loss_pp_using_ref_omega": 0.0998149212395764,
    "p95_loss_pp": 1.417658995487856,
-   "max_loss_pp": 4.82141500303751
+   "max_loss_pp": 4.821415003037521
   },
   "quad_LSLD": {
    "share_same_omega_all_variants": 0.878,
-   "mean_loss_pp_using_ref_omega": 0.0002340662209044303,
+   "mean_loss_pp_using_ref_omega": 0.00023406622090443586,
    "p95_loss_pp": 0.004961433747200925,
    "max_loss_pp": 0.0395885171907806
   },
   "quad_LSHD": {
    "share_same_omega_all_variants": 0.849,
-   "mean_loss_pp_using_ref_omega": 0.015150476602204893,
-   "p95_loss_pp": 0.36595802932151117,
+   "mean_loss_pp_using_ref_omega": 0.015150476602204916,
+   "p95_loss_pp": 0.3659580293215217,
    "max_loss_pp": 1.8410294004734373
   }
  },
- "runtime_s": 30.13989758491516,
+ "runtime_s": 63.60744500160217,
  "headline": {
   "HSLD": {
    "same_omega": 1.0,

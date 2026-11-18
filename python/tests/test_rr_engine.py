@@ -20,7 +20,7 @@ def small():
 @pytest.mark.parametrize("strat", ["none", "fixed", "prn", "prn_ekf", "adaptive"])
 def test_engine_matches_run_strategy(small, strat):
     c, U = small
-    spec = {"strategy": strat, "prn_legacy": True}
+    spec = {"strategy": strat, "prn_legacy": True, "dose_at_horizon": True}  # submitted schedule incl. t = 168 h
     out = engine.simulate(spec, c["lambda_base"], c["C50"], c["gamma_hill"], U, DRUG, CTRL, T, dt,
                           store=("lambda_hat", "counts", "doses", "lambda_obs", "x"))
     for i in range(c["n"]):
@@ -41,7 +41,7 @@ def test_engine_matches_run_strategy(small, strat):
 @pytest.mark.parametrize("win,k", [(8, 1), (8, 3), (24, 2)])
 def test_engine_matches_run_strategy_prn_count_rule(small, win, k):
     c, U = small
-    out = engine.simulate({"strategy": "prn", "prn_legacy": False, "prn_window_hours": win, "prn_min_count": k},
+    out = engine.simulate({"strategy": "prn", "prn_legacy": False, "prn_window_hours": win, "prn_min_count": k, "dose_at_horizon": True},
                           c["lambda_base"], c["C50"], c["gamma_hill"], U, DRUG, CTRL, T, dt, store=("doses", "counts"))
     cp = dict(CTRL, prn_legacy=False, prn_window_hours=win, prn_min_count=k)
     for i in range(c["n"]):
@@ -103,3 +103,14 @@ def test_drug_aware_ekf_tracks_untreated_rate_better():
     e_aware = np.abs(run(True)["lambda_hat"] - c["lambda_base"]).mean()
     e_plain = np.abs(run(False)["lambda_hat"] - c["lambda_base"]).mean()
     assert e_aware < e_plain
+
+
+def test_no_dose_at_horizon():
+    """Revision: fixed 500 mg q8h over 7 days is 21 doses (0, 8, ..., 160 h); the t = 168 h dose is not given."""
+    c = cohort.generate(3, seed=11)
+    U = cohort.uniform_tape(3, Nt, seed=11, stream=1)
+    o = engine.simulate({"strategy": "fixed"}, c["lambda_base"], c["C50"], c["gamma_hill"], U, DRUG, CTRL, T, dt, store=("doses", "x"))
+    o_old = engine.simulate({"strategy": "fixed", "dose_at_horizon": True}, c["lambda_base"], c["C50"], c["gamma_hill"], U, DRUG, CTRL, T, dt, store=("x",))
+    assert np.all(o["n_doses"] == 21) and np.allclose(o["total_dose"], 10500)
+    np.testing.assert_array_equal(o["x"], o_old["x"])          # the removed dose never entered the PK
+    np.testing.assert_array_equal(o["Xday"], o_old["Xday"])

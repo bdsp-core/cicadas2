@@ -111,6 +111,13 @@ def simulate(spec: dict, LB: np.ndarray, C50: np.ndarray, gam: np.ndarray, U: np
 
     k_e = drug["k_e"]
     is_dose = dose_index_mask(T, dt, drug["dosing_interval"])
+    # The grid ends at t = Tmax = 168 h, which is also a multiple of 8 h. A dose there never enters the PK
+    # (x is advanced only for k < Nt - 1) and acts after the 7-day horizon, but the submitted code still counted
+    # it in the dose totals (22 doses of fixed 500 mg q8h instead of the 21 given at 0, 8, ..., 160 h).
+    # Revision (2026-11-18): no dose at the final grid point; dose_at_horizon=True reproduces run_strategy.
+    if not spec.get("dose_at_horizon", False):
+        is_dose = is_dose.copy()
+        is_dose[-1] = False
     omega = np.broadcast_to(np.asarray(spec.get("omega", ctrl["omega"]), float), (n,))
     prn_thr = spec.get("prn_threshold", ctrl["prn_threshold"])
     prn_legacy = spec.get("prn_legacy", True)   # engine default = submitted rule; experiments set it

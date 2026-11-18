@@ -119,7 +119,7 @@ def fig02_param_recovery():
             ax.scatter(t[idx], np.clip(e[idx], None, lim[1]), s=10, alpha=0.45, color=color, edgecolor="white", linewidth=0.3)
             identity_line(ax, lim)
             ax.set_xlim(lim); ax.set_ylim(lim); ax.set_aspect("equal", adjustable="box")
-            ax.set_title(f"{label} ({name})  r = {r:.2f}")
+            ax.set_title(f"{label} ({name})  $\\rho$ = {r:.2f}")  # rho: Pearson correlation (r is the rise rate)
             if col == 0:
                 ax.set_ylabel(f"Estimated {label}")
             if row == 1:
@@ -131,7 +131,7 @@ def fig02_param_recovery():
 def fig03_derived_recovery():
     z = _z("recovery")
     tx = z["treated"].astype(bool)
-    trip = [("Lcum", r"$L_{\mathrm{cum}}$", r"$L_{\mathrm{cum}}$ (sz$\cdot$day)", None, 3),
+    trip = [("Lcum", r"$L_{\mathrm{cum}}$", r"$L_{\mathrm{cum}}$ (seizures)", None, 3),
             ("peak", "Peak height", "Peak height (sz/day)", None, 3),
             ("tpeak", "Peak time", "Peak time (days)", (0, 3.5), 2)]
     fig, axes = plt.subplots(1, 3, figsize=(6.5, 3.6))
@@ -142,7 +142,7 @@ def fig03_derived_recovery():
         ax.scatter(t[~tx], e[~tx], s=11, alpha=0.45, color=COHORT_COLORS["untreated"], edgecolor="white", linewidth=0.3, label="Untreated")
         ax.scatter(t[tx], e[tx], s=11, alpha=0.45, color=COHORT_COLORS["treated"], edgecolor="white", linewidth=0.3, label="Treated")
         identity_line(ax, lim)
-        ax.set(xlim=lim, ylim=lim, xlabel=f"True {axlabel}", ylabel=f"Estimated {axlabel}", title=f"{name}  r = {r:.{dig}f}")
+        ax.set(xlim=lim, ylim=lim, xlabel=f"True {axlabel}", ylabel=f"Estimated {axlabel}", title=f"{name}  $\\rho$ = {r:.{dig}f}")
         ax.set_aspect("equal", adjustable="box")
     h, l = axes[0].get_legend_handles_labels()
     fig.legend(h, l, loc="lower center", ncol=2, bbox_to_anchor=(0.5, -0.04))
@@ -157,12 +157,14 @@ def fig04_confounding():
     z = _z("figdata")
     peak, rct, obs = z["peak"], z["rct"].astype(bool), z["A"].astype(bool)
     fig, axes = plt.subplots(1, 2, figsize=(6.5, 4.4))
-    bins = np.linspace(0, np.percentile(peak, 99), 30)
+    p99 = np.percentile(peak, 99)
+    bins = np.linspace(0, p99, 30)
+    shown = np.minimum(peak, p99)          # the last bin also holds the 1% of patients above the 99th percentile (caption)
 
     def panel(ax, m, title):
-        ax.hist(peak[~m], bins=bins, color=STRAT_COLORS["None"], alpha=0.55, edgecolor="white", linewidth=0.4,
+        ax.hist(shown[~m], bins=bins, color=STRAT_COLORS["None"], alpha=0.55, edgecolor="white", linewidth=0.4,
                 label=f"Untreated (n={(~m).sum()})")
-        ax.hist(peak[m], bins=bins, color=STRAT_COLORS["Adaptive"], alpha=0.65, edgecolor="white", linewidth=0.4,
+        ax.hist(shown[m], bins=bins, color=STRAT_COLORS["Adaptive"], alpha=0.65, edgecolor="white", linewidth=0.4,
                 label=f"Treated (n={m.sum()})")
         ax.axvline(peak[m].mean(), color=STRAT_COLORS["Adaptive"], linestyle=":", linewidth=1.5)
         ax.axvline(peak[~m].mean(), color=STRAT_COLORS["None"], linestyle=":", linewidth=1.5)
@@ -178,7 +180,7 @@ def fig04b_method_comparison():
     f = _j("figdata")["arms"]
     g = _j("gformula")["oracle"]
     methods = [("oracle", "Oracle (truth)", g["oracle_ate"], g["ci"]["oracle"]),
-               ("rct", "Simulated RCT", g["rct_ate"], None),
+               ("rct", "Simulated RCT", g["rct_ate"], g.get("rct_ci")),
                ("naive", "Naive obs.", g["naive_ate"], g["ci"]["naive"]),
                ("gformula", "G-formula\n(fitted mortality model)", g["gform_ate"], g["ci"]["gform"])]
     fig, ax = plt.subplots(figsize=(6.5, 3.0))
@@ -215,7 +217,7 @@ def fig05_te_by_severity():
     ax.axhspan(lo, hi, color=STRAT_COLORS["Adaptive"], alpha=0.15)
     ax.axhline(ate, color=STRAT_COLORS["Adaptive"], linewidth=2, label=f"G-formula ATE = {ate:+.1f} pp  (95% CI [{lo:+.1f}, {hi:+.1f}])")
     ax.axhline(g["oracle_ate"], color="0.15", linewidth=1.2, linestyle="-.", label=f"Oracle ATE = {g['oracle_ate']:+.1f} pp")
-    ax.set_xlim(0, np.percentile(peak, 99))
+    ax.set_xlim(0, np.percentile(peak, 99))   # the 1% of patients beyond are not drawn (caption)
     ax.set(xlabel="Peak seizure rate (sz/day)", ylabel="Individual treatment effect, adaptive vs none (pp)")
     cbar = fig.colorbar(sc, ax=ax, pad=0.015); cbar.set_label("SOFA score")
     ax.legend(loc="lower right", frameon=True, facecolor="white", edgecolor="0.8")
@@ -332,7 +334,7 @@ def fig09_uniform_vs_dynamic():
     s = _j("strategies")["regimes"]
     rows = [[s[q]["table10_test"]["uniform"], s[q]["table10_test"]["fixed_best"], s[q]["table10_test"]["dynamic"]] for q in QUADS]
     fig, ax = plt.subplots(figsize=(6.5, 3.6))
-    x = _grouped(ax, rows, [r"Uniform ($\omega = 2$)", r"Fixed $\omega^*$ per regime", r"Dynamic $\omega(t)$"],
+    x = _grouped(ax, rows, [r"Uniform ($\omega = 2$)", r"Fixed $\omega^*$ per phenotype", r"Dynamic $\omega(t)$"],
                  ["#9A9A9A", "#4FAD5B", "#4878CF"], min_gain=0.5)
     ax.set(xticks=x, xticklabels=[LAB[q] for q in QUADS], ylabel="7-day survival (%)", ylim=(0, 100))
     ax.legend(loc="upper center", ncol=3, bbox_to_anchor=(0.5, -0.12))
@@ -391,10 +393,10 @@ def fig11_ekf_sensitivity():
                     markeredgecolor="white", markersize=7, linewidth=1.8, capsize=2.5, elinewidth=0.9)
         if par in ("q", "floor"):
             ax.set_xscale("log")
-        ax.axhline(base_none, color=STRAT_COLORS["PRN"], linestyle="--", linewidth=1.3)
-        ax.axhline(base_fix, color="0.3", linestyle="--", linewidth=1.3)
+        ax.axhline(base_none, color=STRAT_COLORS["None"], linestyle="--", linewidth=1.5)
+        ax.axhline(base_fix, color=STRAT_COLORS["Fixed"], linestyle="--", linewidth=1.5)
         i_def = int(np.argmin(np.abs(xs - e["defaults"][par])))
-        ax.scatter(xs[i_def], ys[i_def], s=110, facecolor="none", edgecolor=STRAT_COLORS["PRN"], linewidth=2, zorder=4)
+        ax.scatter(xs[i_def], ys[i_def], s=110, facecolor="none", edgecolor="black", linewidth=1.8, zorder=4)
         ax.set_title(title, fontsize=9.5); ax.set_ylabel("7-day survival (%)"); ax.set_xlabel(short)
     ax = axes.flat[-1]
     spreads = np.array([e["sweeps"][p]["spread"] for p, *_ in order]); idx = np.argsort(spreads)
@@ -406,11 +408,11 @@ def fig11_ekf_sensitivity():
         ax.text(v + 0.4, i, f"{v:.1f}", va="center", fontsize=FS_INLINE)
     handles = [Line2D([0], [0], marker="o", linestyle="-", color=STRAT_COLORS["Adaptive"], markerfacecolor=STRAT_COLORS["Adaptive"],
                       markeredgecolor="white", markersize=7, label="Tiered adaptive (95% CI)"),
-               Line2D([0], [0], marker="o", linestyle="", markerfacecolor="none", markeredgecolor=STRAT_COLORS["PRN"],
-                      markeredgewidth=2, markersize=10, label="Default value"),
-               Line2D([0], [0], color="0.3", linestyle="--", label="Fixed 500 mg"),
-               Line2D([0], [0], color=STRAT_COLORS["PRN"], linestyle="--", label="No treatment")]
-    fig.legend(handles=handles, loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.02), fontsize=8.5)
+               Line2D([0], [0], marker="o", linestyle="", markerfacecolor="none", markeredgecolor="black",
+                      markeredgewidth=1.8, markersize=10, label="Default value"),
+               Line2D([0], [0], color=STRAT_COLORS["Fixed"], linestyle="--", linewidth=1.5, label="Fixed 500 mg"),
+               Line2D([0], [0], color=STRAT_COLORS["None"], linestyle="--", linewidth=1.5, label="No treatment")]
+    fig.legend(handles=handles, loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.02), fontsize=8.5, handlelength=3)
     fig.tight_layout(rect=(0, 0.03, 1, 1))
     savepdf(fig, "paper_fig11_ekf_sensitivity.pdf")
 

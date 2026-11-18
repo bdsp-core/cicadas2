@@ -122,7 +122,7 @@ def table_robustness():
     sh = _j("shapes")["gformula"]
     dg = _j("dgp")["variants"]
     lab_o = {"baseline": "Baseline", "sens075": "25\\% of seizures missed", "fp3": "3 false detections per day",
-             "sens075_fp3": "Both", "jitter1h": "Dose times shifted, SD 1~h", "jitter2h": "Dose times shifted, SD 2~h",
+             "sens075_fp3": "25\\% missed and 3 false per day", "jitter1h": "Dose times shifted, SD 1~h", "jitter2h": "Dose times shifted, SD 2~h",
              "drop10": "10\\% of doses missing from record", "drop25": "25\\% of doses missing from record"}
     lab_s = {"squared": "Squared burden", "threshold": "Threshold burden", "saturating": "Saturating burden",
              "piecewise": "Piecewise-linear burden", "time_linear": "Linear time trend"}
@@ -132,7 +132,7 @@ def table_robustness():
             r"\caption{G-formula error under misspecification and data errors. True ATE: oracle effect of adaptive dosing versus no "
             r"treatment (percentage points); bias: g-formula with fitted mortality model minus truth, with 95\% bootstrap interval "
             r"(mortality model refitted on each of 500 resamples); relative bias: bias as a percentage of the true ATE. "
-            r"EKF: extended Kalman filter; SDE: stochastic differential equation; PK: pharmacokinetics; $C_{50}$: half-maximal concentration. $n = 1{,}000$ in every scenario. The bias interval excludes zero only for false detections, missing dose records, saturating harm and strong drug tolerance; unmeasured confounding is analysed separately (Figure~\ref{fig:hiddenconf}).}",
+            r"EKF: extended Kalman filter; SDE: stochastic differential equation; PK: pharmacokinetics; $C_{50}$: half-maximal concentration. Each scenario is defined in Supplementary Section~S6; in the last block the deployed strategy uses the miscalibrated filter, all patients follow the SDE natural history, or both at once. $n = 1{,}000$ in every scenario. The bias interval excludes zero only for false detections, missing dose records, saturating harm and strong drug tolerance; unmeasured confounding is analysed separately (Figure~\ref{fig:hiddenconf}).}",
             r"\label{tab:robust}", r"\begin{tabular}{lrrr}", r"\toprule", r"Scenario & True ATE & Bias (95\% CI) & Relative bias \\", r"\midrule"]
     def row(lab, v):
         return (f"{lab} & {_n(v['oracle_ate'])} & {_n(v['bias'])} ({_n(v['ci']['bias'][0])}, {_n(v['ci']['bias'][1])}) & "
@@ -149,7 +149,7 @@ def table_robustness():
         ly = _j("misspec")["layers"]
         rows.append(r"\midrule")
         for k, l in [("ekf", "Miscalibrated EKF in the deployed strategy"), ("traj", "CICADAS SDE natural history"),
-                     ("joint", "Both")]:
+                     ("joint", "Miscalibrated EKF and SDE natural history")]:
             rows.append(row(l, ly[k]))
     rows += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
     return "\n".join(rows)
@@ -199,10 +199,15 @@ def table_metrics():
     t8 = _j("strategies")["regimes"]["quad_HSLD"]["table8"]
     nm = [("none", "None"), ("fixed", "Fixed 500~mg"), ("prn8_k1", "PRN"), ("adapt_2", r"Adaptive ($\omega = 2$)")]
     body = [f"{l} & {t8[k]['Lcum']:.1f} & {t8[k]['Xcum']:,.0f} & {t8[k]['dose']:,.0f} \\\\".replace(",", "{,}") for k, l in nm]
-    cap = (r"Mean 7-day cumulative seizure burden $L_{\mathrm{cum}}$ (seizure-days), cumulative drug exposure $X_{\mathrm{cum}}$ "
-           r"(concentration-hours) and total dose (mg) by strategy, $n = 1{,}000$. These do not depend on the harm phenotype, "
+    # units (2026-11-18): Lcum = sum of lambda_obs (seizures/day) x dt (days) = expected number of seizures;
+    # Xcum = sum of x (mg; the model's drug amount, no volume) x dt (days) = mg*day
+    cap = (r"Mean 7-day cumulative seizure burden $L_{\mathrm{cum}}$ (expected number of seizures, "
+           r"$\sum_k \lambda_{\mathrm{obs}}(t_k)\,\Delta t$), cumulative drug exposure $X_{\mathrm{cum}}$ (area under the "
+           r"drug-amount curve, $\sum_k x_k\,\Delta t$, in mg$\cdot$day; the model has no volume of distribution, "
+           r"Section~\ref{sec:pk}) and total dose (mg) by strategy over the 7 days, $n = 1{,}000$. Doses can be given at "
+           r"0, 8, \ldots, 160~h (21 dosing times); fixed 500~mg dosing gives all 21. These do not depend on the harm phenotype, "
            r"because the phenotype changes only the mortality model.")
-    return _tab(cap, "tab:strategy_metrics", "lrrr", r"Strategy & $L_{\mathrm{cum}}$ & $X_{\mathrm{cum}}$ & Total dose (mg) \\", body)
+    return _tab(cap, "tab:strategy_metrics", "lrrr", r"Strategy & $L_{\mathrm{cum}}$ (seizures) & $X_{\mathrm{cum}}$ (mg$\cdot$day) & Total dose (mg) \\", body)
 
 
 def table_ekf_sens():
@@ -331,6 +336,73 @@ def table_closed_loop():
     return "\n".join(rows)
 
 
+def table_misclass():
+    """Phenotype misassignment (Section 5.3.4): per-phenotype survival of each policy, held-out half."""
+    m = _j("misclass")
+    pp = m["per_phenotype_test"]
+    Q = [LAB[q] for q in QUADS]
+    short = {LAB[q]: q.split("_")[1] for q in QUADS}                      # "High Sz / Low Drug" -> "HSLD"
+    harm = {short[l]: f"harm_{short[l]}" for l in Q}
+    simp = m["matched_simple_by_phenotype"]
+
+    def nm(l):
+        if l.startswith("harm_"):
+            c_ = l.split("_")[1]                                           # e.g. "HSHD" -> "HS/HD"
+            return "harm-balanced, " + c_[:2] + "/" + c_[2:] + r" $\theta$"
+        if l.startswith("harmscale_"):
+            return r"harm-balanced, scaled $\theta$ (" + l.split("_")[1] + ")"
+        if l == "none":
+            return "none"
+        if l.startswith("fixed"):
+            return "fixed " + (l.split("_")[1] if "_" in l else "500") + "~mg"
+        if l.startswith("adapt_"):
+            return r"tiered, $\omega = " + l.split("_")[1] + "$"
+        return r"PRN, $\geq$" + l.split("_k")[1] + " seizures"
+
+    def row(label, by_q, ci=None):
+        right = [pp[short[l]][by_q[short[l]]] for l in Q]
+        cells = " & ".join(f"{v:.1f}" for v in right)
+        return f"{label} & {cells} & " + (_ci(ci) if ci else f"{sum(right) / 4:.1f}") + r" \\"
+
+    def wrong_row(label, by_q, ci):
+        vals = []
+        for l in Q:
+            others = [o for o in Q if o != l]
+            vals.append(sum(pp[short[l]][by_q[short[o]]] for o in others) / 3)
+        return f"{label} & " + " & ".join(f"{v:.1f}" for v in vals) + f" & {_ci(ci)}" + r" \\"
+    R = m["results"]
+    single = m["single_policy"]; ss = m["single_simple"]
+    body = [r"\multicolumn{6}{@{}l}{\emph{Phenotype-dependent policies, correct phenotype}} \\",
+            row(r"\quad Harm-balanced, own $\theta$", harm, R["harm_uniform"]["matched"]),
+            row(r"\quad Best simple strategy$^a$", simp, R["simple_uniform"]["matched"]),
+            r"\multicolumn{6}{@{}l}{\emph{Phenotype-dependent policies, every patient given a wrong phenotype$^b$}} \\",
+            wrong_row(r"\quad Harm-balanced, wrong $\theta$", harm, R["harm_uniform"]["all_wrong"]),
+            wrong_row(r"\quad Best simple strategy of a wrong phenotype", simp, R["simple_uniform"]["all_wrong"]),
+            r"\multicolumn{6}{@{}l}{\emph{One policy for everyone (chosen on the tuning half)}} \\",
+            row(r"\quad Best single policy: " + nm(single), {short[l]: single for l in Q}, m["single"]),
+            row(r"\quad Best single simple: " + nm(ss), {short[l]: ss for l in Q}, m["single_simple_ci"])]
+    a_ = "; ".join(f"{l}: {nm(simp[short[l]])}" for l in Q)
+    h, sm_ = R["harm_uniform"], R["simple_uniform"]
+    pc = lambda v: f"{100 * v:.0f}"
+    cap = (r"Phenotype misassignment (Section~\ref{sec:misclass}). Mean 7-day survival (\%) of the held-out patients "
+           f"($n = {m['n']}$, odd-numbered), each scored under all four true phenotypes; Mean: average over the four phenotypes "
+           r"with 95\% confidence interval. Harm-balanced: the estimated controller of Section~\ref{sec:harm} given the "
+           r"$\theta$ of the assigned phenotype. $^a$Best of no treatment, fixed doses (250--750~mg), the tiered controller "
+           r"($\omega$ grid) and PRN (1--5 seizures in 8~h) for each phenotype, chosen on the even-numbered patients (" + a_ + "). "
+           r"$^b$Average over the three wrong phenotypes. With a fraction $p$ of patients assigned a wrong phenotype "
+           r"(uniformly among the other three), survival is $(1-p)$ times the correct-phenotype value plus $p$ times the "
+           r"wrong-phenotype value; it falls to the best single policy at "
+           f"$p^* = {pc(h['p_star'])}$\\% ({pc(h['p_star_ci'][0])}--{pc(h['p_star_ci'][1])}\\%) for the harm-balanced controller and "
+           f"{pc(sm_['p_star'])}\\% ({pc(sm_['p_star_ci'][0])}--{pc(sm_['p_star_ci'][1])}\\%) for the best simple strategies. "
+           f"Paired differences from the best single policy: {_ci(h['matched_vs_single'])}~pp (harm-balanced, correct phenotype) and "
+           f"{_ci(sm_['matched_vs_single'])}~pp (best simple strategies, correct phenotype). "
+           r"Table~\ref{tab:quadrant} uses all 1{,}000 patients and four fixed strategies, so its numbers differ. HS, LS: high, low "
+           r"seizure harm; HD, LD: high, low drug harm (Sz: seizure harm; Drug: drug harm).")
+    return _tab(cap, "tab:misclass", "@{}lrrrrl@{}",
+                r"Policy & " + " & ".join(_two(*l.split(" / ")) if False else l.replace(" / ", "/").replace("High Sz", "HS").replace("Low Sz", "LS").replace("High Drug", "HD").replace("Low Drug", "LD") for l in Q) + r" & Mean (95\% CI) \\",
+                body, r"\footnotesize")
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     hdr = "% AUTO-GENERATED by cicadas2.rr.tables from results/rr_*.json\n"
@@ -339,6 +411,7 @@ def main():
                      ("table_personalized", table_personalized), ("table_dynamic", table_dynamic), ("table_metrics", table_metrics)]:
         (OUT / f"{name}.tex").write_text(hdr + fn() + "\n")
     optional = [("table_ekf_sensitivity", "ekf_sensitivity", table_ekf_sens), ("table_graded", "misspec", table_graded),
+                ("table_misclass", "misclass", table_misclass),
                 ("table_demographics", "figdata", table_demographics)]
     for name, src, fn in optional:
         if (RES / f"rr_{src}.json").exists():
