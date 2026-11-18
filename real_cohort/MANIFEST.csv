@@ -1,0 +1,15 @@
+path,bytes,sha256,s3_uri
+DATA_DICTIONARY.md,10396,8e1af9536c7fe0e1a89f875dd8cc3269a12ca1745a3bf21245cf9b4e50e8f0b8,s3://bdsp-opendata-credentialed/cicadas2/DATA_DICTIONARY.md
+README.md,14317,e828cf8fde6319219edd7b950d61e3d50f24c2c1221482d63c7c438da78f1146,s3://bdsp-opendata-credentialed/cicadas2/README.md
+code/build_from_source.py,10237,55deacc511e6db361b8fb5cf2b03f23e55d1515b4b5d01663c6c1a24b7e91225,s3://bdsp-opendata-credentialed/cicadas2/code/build_from_source.py
+code/reproduce_section6.py,26264,c5c58008c75995f894d2af4cca231645e111689e44c99daca33e423614c54f87,s3://bdsp-opendata-credentialed/cicadas2/code/reproduce_section6.py
+code/source_inclusion_cohort.py,2588,a95c3a3d96f79a00c2415b37998f9992074e34cd6900c08069cfd9941c57890b,s3://bdsp-opendata-credentialed/cicadas2/code/source_inclusion_cohort.py
+data/eeg_minute/part-000.parquet,15025203,f153c75fec9d6a217ef2af89788f1f5557afdebe3971f6b48221cb7289a24fb2,s3://bdsp-opendata-credentialed/cicadas2/data/eeg_minute/part-000.parquet
+data/eeg_minute/part-001.parquet,13600580,1de0be55d45a150876d4e46ae8d68f0ded93bfb2fd0ff01c38e3b6d26ae386c2,s3://bdsp-opendata-credentialed/cicadas2/data/eeg_minute/part-001.parquet
+data/eeg_minute/part-002.parquet,13120806,f74b5963293cd0ed4b4483c75bd68cdee1436bdc52404ef05b0e9bfda66e787c,s3://bdsp-opendata-credentialed/cicadas2/data/eeg_minute/part-002.parquet
+data/eeg_minute/part-003.parquet,16049392,81567844a1a6036fe61a398286a0285d30e63a703896b62804bf167116d3c1b4,s3://bdsp-opendata-credentialed/cicadas2/data/eeg_minute/part-003.parquet
+data/medications.parquet,1547558,754874e98a5b202cdaa0635941d7025dd91110e1c620db6ab6c6d2d6812c906e,s3://bdsp-opendata-credentialed/cicadas2/data/medications.parquet
+data/patients.parquet,874595,bd08e9bcc5162ee3e9ef1675cdf6b3933d88ea485e362f5a9d9ba14b21ab59e8,s3://bdsp-opendata-credentialed/cicadas2/data/patients.parquet
+data/propofol_charting.parquet,610354,f171751a5e9a45d784e61eeb89a2b93b5c420eaf965520c937363c907e82deb2,s3://bdsp-opendata-credentialed/cicadas2/data/propofol_charting.parquet
+reference/reproduce_section6_output.txt,23510,273bc07acf3def50b37cb0d3e2ab909bfc2bec75380c0ebcdf720fcc5b4c9fa8,s3://bdsp-opendata-credentialed/cicadas2/reference/reproduce_section6_output.txt
+reference/rr_real_cohort.json,7753,e69137a39d132136cfe691d14c201b0c4d3b92edf1e38f0fae49d33d75306c04,s3://bdsp-opendata-credentialed/cicadas2/reference/rr_real_cohort.json

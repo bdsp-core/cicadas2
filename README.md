@@ -224,8 +224,8 @@ python -m cicadas2.rr.run strategies harm # or a subset of experiments by name
 ```
 
 `results/rr_ledger.jsonl` records every run with its seed, cohort size and a fingerprint of the code that produced
-it. The real-cohort numbers in Section 6 of the manuscript are aggregate counts produced in a separate, access-restricted
-analysis environment; no patient-level data are stored here.
+it. The real-cohort data behind Section 6 of the manuscript are available to credentialed users through bdsp.io; see
+[`DATA_SOURCE.md`](DATA_SOURCE.md). No patient-level data are stored here.
 
 ## Citation
 

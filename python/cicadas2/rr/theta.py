@@ -9,19 +9,19 @@ import numpy as np
 
 REGISTRY = {
     "default":    dict(theta=np.array([-4, 0.5, 1.5, 1.0, 0.15, 0.07]), label="Default",
-                       short=r"\S5.3.1, \S5.4", used_in="s3, s4 (Sec 5.3.1), s15 (Sec 5.4)"),
+                       short=r"\S\ref{sec:ekf_rr}, \S\ref{sec:personalized} (Supp.\ Figs~\ref{fig:threshold_sweep}, \ref{fig:ekf_sensitivity})", used_in="s3, s4 (Sec 5.3.1), s15 (Sec 5.4)"),
     "quad_HSLD":  dict(theta=np.array([-5, 0.5, 3.0, 1.0, 0.05, 0.02]), label="High Sz / Low Drug",
-                       short=r"\S5.2--5.3", used_in="s5, s8, s10-s14"),
+                       short=r"\S\ref{sec:closedloop_rr}, \S\ref{sec:claim2}, \S\ref{sec:findings}", used_in="s5, s8, s10-s14"),
     "quad_HSHD":  dict(theta=np.array([-5, 0.5, 3.0, 1.0, 1.25, 0.3]), label="High Sz / High Drug",
-                       short=r"\S5.2--5.3", used_in="s5, s8, s10-s14"),
+                       short=r"\S\ref{sec:closedloop_rr}, \S\ref{sec:claim2}, \S\ref{sec:findings}", used_in="s5, s8, s10-s14"),
     "quad_LSLD":  dict(theta=np.array([-5, 0.5, 0.5, 0.2, 0.05, 0.02]), label="Low Sz / Low Drug",
-                       short=r"\S5.2--5.3", used_in="s5, s8, s10-s14"),
+                       short=r"\S\ref{sec:closedloop_rr}, \S\ref{sec:claim2}, \S\ref{sec:findings}", used_in="s5, s8, s10-s14"),
     "quad_LSHD":  dict(theta=np.array([-5, 0.5, 0.5, 0.2, 1.25, 0.3]), label="Low Sz / High Drug",
-                       short=r"\S5.2--5.3", used_in="s5, s8, s10-s14"),
+                       short=r"\S\ref{sec:closedloop_rr}, \S\ref{sec:claim2}, \S\ref{sec:findings}", used_in="s5, s8, s10-s14"),
     "gformula":   dict(theta=np.array([-5, 0.5, 1.5, 0.5, 0.5, 0.2]), label="G-formula",
-                       short=r"\S5.1, \S5.5", used_in="s9 (Sec 5.1), s16 (Sec 5.5)"),
+                       short=r"\S\ref{sec:claim1}", used_in="s9 (Sec 5.1), s16 (Sec 5.5)"),
     "squared_gen": dict(theta=np.array([-4, 0.5, 1.0, 0.7, 0.10, 0.05]), label="Squared-burden generator",
-                        short=r"\S5.5.3 (data generation)",
+                        short=r"\S\ref{sec:shape} (data generation)",
                         used_in="s16 Sec 5.5.3 generates with these values and squared burden, "
                                 "then scores with the linear g-formula theta: shape and values both differ"),
 }

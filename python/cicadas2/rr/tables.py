@@ -87,7 +87,7 @@ def table_tuned():
             r"is given below each entry. Positive values favor the tiered controller. PRN (\emph{pro re nata}): a dose when "
             r"at least the given number of seizures was counted in the preceding 8 or 24~h, or when the extended Kalman "
             r"filter (EKF) rate exceeds the threshold. Tiered, 24-h average: the same dose tiers driven by a 24-hour "
-            r"moving average of counts instead of the EKF. Sz: seizure harm; Drug: drug harm. A tuned fixed dose beats the tiered controller in High Sz / Low Drug and Low Sz / Low Drug; when the drug is harmful, rules that rarely dose (PRN, no treatment) match or beat it.}",
+            r"moving average of counts instead of the EKF. Sz: seizure harm; Drug: drug harm. A tuned fixed dose beats the tiered controller in High Sz / Low Drug and Low Sz / Low Drug; when the drug is harmful and seizures are mild, a PRN rule that rarely doses beats it.}",
             r"\label{tab:tuned}", r"\begin{tabular}{@{}l" + "l" * len(fams) + "@{}}", r"\toprule",
             " & ".join([_two("Phenotype", r"(tiered $\omega$)")] + [_two(a_, b_) for _, (a_, b_) in fams]) + r" \\", r"\midrule"]
     for q in QUADS:
@@ -131,7 +131,7 @@ def table_robustness():
     rows = [r"\begin{table}[ht]\centering\small",
             r"\caption{G-formula error under misspecification and data errors. True ATE: oracle effect of adaptive dosing versus no "
             r"treatment (percentage points); bias: g-formula with fitted mortality model minus truth, with 95\% bootstrap interval "
-            r"(mortality model refitted on each of 200 resamples); relative bias: bias as a percentage of the true ATE. "
+            r"(mortality model refitted on each of 500 resamples); relative bias: bias as a percentage of the true ATE. "
             r"EKF: extended Kalman filter; SDE: stochastic differential equation; PK: pharmacokinetics; $C_{50}$: half-maximal concentration. $n = 1{,}000$ in every scenario. The bias interval excludes zero only for false detections, missing dose records, saturating harm and strong drug tolerance; unmeasured confounding is analysed separately (Figure~\ref{fig:hiddenconf}).}",
             r"\label{tab:robust}", r"\begin{tabular}{lrrr}", r"\toprule", r"Scenario & True ATE & Bias (95\% CI) & Relative bias \\", r"\midrule"]
     def row(lab, v):
@@ -191,7 +191,7 @@ def table_dynamic():
         body.append(f"{LAB[q]} & {_ci(t['uniform'])} & {_ci(t['fixed_best'])} [{(t['fixed_best']['choice'].split('_')[1] if '_' in t['fixed_best']['choice'] else '$\\infty$')}] & {_ci(t['dynamic'])} \\\\")
     cap = (r"Three levels of personalization of the tiered controller, held-out half ($n = 500$): a uniform threshold "
            r"$\omega = 2$; the best fixed threshold for the phenotype, chosen on the other half (in brackets); and the dynamic "
-           r"$\omega(t)$ rule of Section~\ref{sec:dynomega}. Entries: 7-day survival (\%) with 95\% confidence interval. Sz: seizure harm; Drug: drug harm. A threshold fixed per phenotype captures most of the gain over the uniform threshold, and the dynamic rule does no better (paired differences in Section~\ref{sec:personalized}).")
+           r"$\omega(t)$ rule of Section~\ref{sec:dynomega}. Entries: 7-day survival (\%) with 95\% confidence interval. Sz: seizure harm; Drug: drug harm. A threshold fixed per phenotype captures most of the gain over the uniform threshold except when both harms are high, and the dynamic rule does no better (paired differences in Section~\ref{sec:personalized}).")
     return _tab(cap, "tab:dynamic_omega", "llll", r"Phenotype & Uniform & Fixed $\omega^*$ & Dynamic $\omega(t)$ \\", body)
 
 
@@ -230,7 +230,7 @@ def table_graded():
     cap = (r"Graded trajectory misspecification. A random, nested fraction of the 1{,}000 patients follows the CICADAS "
            r"stochastic differential equation (SDE) natural history; the estimator always assumes the rise--decay form. ATE: "
            r"average treatment effect of adaptive dosing versus none (percentage points); truth is the oracle effect; bias is "
-           r"g-formula minus truth. 95\% bootstrap intervals, mortality model refitted on each of 200 resamples.")
+           r"g-formula minus truth. 95\% bootstrap intervals, mortality model refitted on each of 500 resamples.")
     return _tab(cap, "tab:graded", "rlll", r"SDE fraction & True ATE & G-formula ATE & Bias \\", body)
 
 
@@ -285,7 +285,7 @@ def table_harm():
             r"includes the drug; its prior and persistence were chosen by tracking error on the tuning half "
             f"(prior peak {f['P_pop']:g} seizures/day, persistence {f['tau_x']:g} days). Oracle: the true drug-free rate and "
             r"the patient's own dose-response parameters. Entries: survival difference in percentage points with 95\% "
-            r"paired-bootstrap interval; the tuned setting is in brackets. Positive values favor the harm-balanced controller. Sz: seizure harm; Drug: drug harm. SOFA: Sequential Organ Failure Assessment. PRN (\emph{pro re nata}): a dose when seizures were counted in the preceding hours. The controller ties the best tuned fixed dose when the drug is not harmful (where the maximum dose is optimal) and beats every tuned comparator when it is.}",
+            r"paired-bootstrap interval; the tuned setting is in brackets. Positive values favor the harm-balanced controller. Sz: seizure harm; Drug: drug harm. SOFA: Sequential Organ Failure Assessment. The controller ties the best tuned fixed dose when the drug is not harmful (where the maximum dose is optimal) and beats every tuned comparator when it is.}",
             r"\label{tab:harm}", r"\begin{tabular}{@{}lllll@{}}", r"\toprule",
             " & ".join([_two("Phenotype", ""), _two("vs tuned", "fixed dose"), _two("vs tuned", "tiered adaptive"),
                         _two("vs no", "treatment"), _two("Oracle vs", "tuned fixed")]) + r" \\", r"\midrule"]

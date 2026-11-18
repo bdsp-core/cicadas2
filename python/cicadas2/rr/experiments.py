@@ -25,6 +25,10 @@ SEED = 2026
 N = 1000
 TIME, DRUG, CTRL, MORT = default_params()
 T, dt, Nt = TIME["T"], TIME["dt"], TIME["Nt"]
+# One bootstrap for every g-formula analysis: the same 500 patient resamples (seed 21) in every experiment, so
+# the baseline interval is identical wherever it is reported and scenario intervals are paired with it.
+GF_B, GF_SEED = 500, 21
+
 QLAB = {"quad_HSLD": "HSLD", "quad_HSHD": "HSHD", "quad_LSLD": "LSLD", "quad_LSHD": "LSHD",
         "default": "Default", "gformula": "Gform"}
 REGIMES = QUADS + ["default", "gformula"]
@@ -216,7 +220,7 @@ def exp_gformula(results_dir, B=500):
     for pk in ("oracle", "pop"):
         P = get_prep(pk)
         r = gformula.evaluate(P, th)
-        b = gformula.bootstrap(P, th, B=B, seed=21)
+        b = gformula.bootstrap(P, th, B=GF_B, seed=GF_SEED)
         s = _summ(r, b)
         # spread of a single coin-flip RCT over re-randomisations (G5)
         g = np.random.default_rng(31)
@@ -277,7 +281,7 @@ def exp_confounding(results_dir, kappas=(0, 0.25, 0.5, 1, 2, 4), a_t=1.0, a_m=0.
     rows = []
     for k in kappas:
         r = gformula.evaluate(P, th, gamma_u=k * a_t, delta_u=k * a_m)
-        b = gformula.bootstrap(P, th, B=B, seed=40, gamma_u=k * a_t, delta_u=k * a_m)
+        b = gformula.bootstrap(P, th, B=GF_B, seed=GF_SEED, gamma_u=k * a_t, delta_u=k * a_m)
         s = _summ(r, b)
         s["kappa"] = k
         s["gamma_u"], s["delta_u"] = k * a_t, k * a_m
@@ -293,7 +297,7 @@ def exp_confounding(results_dir, kappas=(0, 0.25, 0.5, 1, 2, 4), a_t=1.0, a_m=0.
     # E-value for the baseline g-formula estimate (death-risk ratio, treated vs untreated)
     r0 = gformula.evaluate(P, th)
     risk_t, risk_n = 1 - r0["G_t"].mean(), 1 - r0["G_n"].mean()
-    b0 = gformula.bootstrap(P, th, B=B, seed=41)
+    b0 = gformula.bootstrap(P, th, B=GF_B, seed=GF_SEED)
     # CI limit closest to the null on the risk-ratio scale, from bootstrap of G means
     g = np.random.default_rng(42)
     rrs = []
@@ -369,11 +373,11 @@ def exp_shapes(results_dir, B=200):
     rows = {}
     for sh in ["linear", "squared", "threshold", "saturating", "piecewise"]:
         r = gformula.evaluate(P, th, shape=sh)
-        b = gformula.bootstrap(P, th, B=B, seed=50, shape=sh)
+        b = gformula.bootstrap(P, th, B=GF_B, seed=GF_SEED, shape=sh)
         rows[sh] = _summ(r, b)
     # time trend (R1 M2a): truth uses a linear time term, the fitted model keeps the quadratic one
     r = gformula.evaluate(P, th, time_power=1)
-    b = gformula.bootstrap(P, th, B=B, seed=52, time_power=1)
+    b = gformula.bootstrap(P, th, B=GF_B, seed=GF_SEED, time_power=1)
     rows["time_linear"] = _summ(r, b)
     # replication of the submitted squared-burden test (both burden terms squared, as fcn_mortality_squared):
     # shape AND coefficients differ from what the g-formula assumes, theta not fitted
@@ -643,7 +647,7 @@ def exp_obs_errors(results_dir):
     for k, kw in scen.items():
         P = get_prep("oracle", **kw)
         r = gformula.evaluate(P, th)
-        b = gformula.bootstrap(P, th, B=200, seed=70)
+        b = gformula.bootstrap(P, th, B=GF_B, seed=GF_SEED)
         s = _summ(r, b)
         s["Lcum_corr_treated"] = float(np.corrcoef(P["Lbase_hat_t"], P["Lbase_true"])[0, 1])
         s["Lcum_corr_untreated"] = float(np.corrcoef(P["Lbase_hat_n"], P["Lbase_true"])[0, 1])
@@ -688,7 +692,7 @@ def exp_dgp(results_dir):
                              "p_best": stats.p_best(S, seed=80).tolist()}
         P = get_prep("oracle", dgp=dgp or None)
         r = gformula.evaluate(P, th)
-        b = gformula.bootstrap(P, th, B=200, seed=81)
+        b = gformula.bootstrap(P, th, B=GF_B, seed=GF_SEED)
         out["variants"][vk] = {"rankings": rank, "gformula": _summ(r, b)}
     out["headline"] = {vk: {"winners": {q: v["rankings"][q]["winner"] for q in v["rankings"]}, "gform_bias": _r(v["gformula"]["bias"]),
                             "gform_sign_correct": bool(np.sign(v["gformula"]["gform_ate"]) == np.sign(v["gformula"]["oracle_ate"]))}
@@ -712,7 +716,7 @@ def exp_refutation(results_dir):
     out = {"n": N}
     null_th = th.copy(); null_th[2:] = 0.0                       # seizures and drug do not affect death
     r = gformula.evaluate(P, null_th)
-    b = gformula.bootstrap(P, null_th, B=200, seed=90)
+    b = gformula.bootstrap(P, null_th, B=GF_B, seed=GF_SEED)
     out["null_outcome"] = _summ(r, b)
     out["null_outcome"]["ci_covers_0"] = bool(b["lo"][1] <= 0 <= b["hi"][1])
     # repeat over 40 independent sets of observed deaths: does the pipeline manufacture an effect on average?
@@ -1234,13 +1238,13 @@ def exp_misspec(results_dir, fracs=(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0
     P = {"well": get_prep("oracle"), "ekf": prep(c_rd, BAD_EKF), "traj": prep(c_sde), "joint": prep(c_sde, BAD_EKF)}
     out = {"n": N, "bad_ekf": BAD_EKF["ekf"], "layers": {}, "graded": []}
     for k, Pk in P.items():
-        out["layers"][k] = _summ(gformula.evaluate(Pk, th), gformula.bootstrap(Pk, th, B=B, seed=41))
+        out["layers"][k] = _summ(gformula.evaluate(Pk, th), gformula.bootstrap(Pk, th, B=GF_B, seed=GF_SEED))
     rng = np.random.default_rng((SEED, 404))
     order = rng.permutation(N)                     # which patients switch to the SDE first (random, nested)
     for f in fracs:
         take = np.zeros(N, bool); take[order[:int(round(f * N))]] = True
         Pm = _merge_prep(P["well"], P["traj"], take)
-        s = _summ(gformula.evaluate(Pm, th), gformula.bootstrap(Pm, th, B=B, seed=42))
+        s = _summ(gformula.evaluate(Pm, th), gformula.bootstrap(Pm, th, B=GF_B, seed=GF_SEED))
         s["sde_fraction"] = f
         out["graded"].append(s)
     lay = out["layers"]
